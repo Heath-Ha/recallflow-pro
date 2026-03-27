@@ -1,0 +1,1571 @@
+<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Flow Pro - 학습</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: #f7fafc;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .stat-item strong {
+            color: #667eea;
+        }
+        
+        .main-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            min-height: 680px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .stage-label {
+            font-size: 18px;
+            font-weight: bold;
+            color: #764ba2;
+            margin-bottom: 0px;
+        }
+        
+        .flashcard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .flashcard:hover {
+            transform: scale(1.02);
+        }
+        
+        .flashcard.flipped {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .card-front, .card-back {
+            font-size: 24px;
+            line-height: 1.5;
+        }
+        
+        .card-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn-wrong {
+            background: #f56565;
+            color: white;
+            min-width: 120px;
+        }
+        
+        .btn-correct {
+            background: #48bb78;
+            color: white;
+            min-width: 120px;
+        }
+        
+        .btn-flip {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .system-view {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .system-section {
+            margin-bottom: 20px;
+        }
+        
+        .system-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .stage-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .stage-name {
+            min-width: 100px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .slots {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .slot {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            background: #f7fafc;
+        }
+        
+        .slot.filled {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .box-info {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .add-cards {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+        
+        .add-cards textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: inherit;
+            margin-bottom: 10px;
+            min-height: 100px;
+        }
+        
+        .add-cards button {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .no-cards {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .current-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .mini-card {
+            background: #edf2f7;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            border: 2px solid #cbd5e0;
+        }
+        
+        .mini-card.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .card-list-item {
+            background: #f7fafc;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .card-content {
+            flex: 1;
+        }
+        
+        .delete-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .delete-btn:hover {
+            background: #e53e3e;
+        }
+        
+        .backlog-header {
+            cursor: pointer;
+            padding: 12px;
+            background: #edf2f7;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .backlog-header:hover {
+            background: #e2e8f0;
+        }
+        
+        .backlog-toggle {
+            font-size: 18px;
+        }
+        
+        .backlog-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .backlog-content.open {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .verification-progress {
+            background: #fff5e6;
+            border: 2px solid #ffa500;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #d97706;
+            text-align: center;
+        }
+        
+        .circular-cards {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            margin: 0;
+        }
+        
+        .circular-card {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.5s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 3px solid #667eea;
+        }
+        
+        .circular-card.center {
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            width: 500px;
+            height: 350px;
+            z-index: 3;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 20px 30px;
+        }
+        
+        .circular-card.left {
+            left: -5%;
+            top: 50%;
+            transform: translate(0, -50%) scale(0.65) rotate(-5deg);
+            width: 200px;
+            height: 150px;
+            z-index: 2;
+            opacity: 0.6;
+            font-size: 14px;
+        }
+        
+        .circular-card.right {
+            right: -5%;
+            top: 50%;
+            transform: translate(0, -50%) scale(0.65) rotate(5deg);
+            width: 200px;
+            height: 150px;
+            z-index: 2;
+            opacity: 0.6;
+            font-size: 14px;
+        }
+        
+        .circular-card.left:hover,
+        .circular-card.right:hover {
+            opacity: 0.85;
+            transform: translate(0, -50%) scale(0.7) rotate(0deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="nav-container"></div>
+        <div class="main-content" id="study-area">
+            <div class="no-cards">
+                <h2>👋 카드를 추가해서 시작하세요!</h2>
+                <p style="margin-top: 10px; color: #a0aec0;">아래에서 카드를 추가하면 학습이 시작됩니다.</p>
+            </div>
+        </div>
+        
+        <div class="system-view">
+            <h2 style="margin-bottom: 20px; color: #667eea;">📊 시스템 현황</h2>
+            
+            <div class="system-section">
+                <div class="backlog-header" onclick="toggleBacklog()">
+                    <h3 style="margin: 0;">📚 대기풀 관리</h3>
+                    <span class="backlog-toggle" id="backlog-toggle">▼</span>
+                </div>
+                <div class="backlog-content" id="backlog-content">
+                    <div id="backlog-cards"></div>
+                </div>
+            </div>
+            
+            <div class="system-section">
+                <h3>🔄 학습 구간 (작업기억 단계)</h3>
+                <div class="current-cards" id="current-cards-display"></div>
+                
+                <div class="stage-row">
+                    <div class="stage-name">1단 윗줄</div>
+                    <div class="slots" id="stage1-slots"></div>
+                </div>
+                
+                <div class="stage-row">
+                    <div class="stage-name">2단 윗줄</div>
+                    <div class="slots" id="stage2-slots"></div>
+                </div>
+                
+                <div class="stage-row">
+                    <div class="stage-name">3단 윗줄</div>
+                    <div class="slots" id="stage3-slots"></div>
+                </div>
+            </div>
+            
+            <div class="system-section">
+                <h3>📦 상자 시스템 (장기 기억)</h3>
+                <div class="box-info">📦 1단 상자: <strong id="box1-count">0</strong> / <strong id="box1-size">300</strong>장</div>
+                <div class="box-info">📦 2단 상자: <strong id="box2-count">0</strong> / <strong id="box2-size">900</strong>장</div>
+                <div class="box-info">📦 3단 상자: <strong id="box3-count">0</strong> / <strong id="box3-size">1800</strong>장</div>
+                <div class="box-info">📦 4단 상자: <strong id="box4-count">0</strong> / <strong id="box4-size">3500</strong>장</div>
+            </div>
+        </div>
+        
+        <div class="header">
+            <h1>🧠 Recall Flow</h1>
+            <p>틀린 카드는 즉시 다시, 맞춘 카드만 단계적으로 전진</p>
+            <div class="stats">
+                <div class="stat-item">📚 대기풀: <strong id="backlog-count">0</strong></div>
+                <div class="stat-item">🎯 현재 학습: <strong id="current-count">0</strong>/3</div>
+                <div class="stat-item">✅ 완전 암기: <strong id="mastered-count">0</strong></div>
+                <div class="stat-item" style="cursor: pointer; background: #4299e1; color: white;" onclick="openSettings();">⚙️ 설정</div>
+                <div class="stat-item" style="cursor: pointer; background: #f56565; color: white;" onclick="resetAllData();">🗑️ 초기화</div>
+            </div>
+        </div>
+        
+        <div class="add-cards">
+            <h3 style="margin-bottom: 10px;">➕ 카드 추가하기</h3>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="margin-bottom: 10px; font-size: 14px; color: #718096;">
+                    📁 엑셀 파일 업로드 (첫 번째 열: 앞면, 두 번째 열: 뒷면)
+                </p>
+                <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv" style="margin-bottom: 10px;">
+                <button onclick="uploadExcel()" style="background: #48bb78;">엑셀에서 가져오기</button>
+            </div>
+            
+            <div>
+                <p style="margin-bottom: 10px; font-size: 14px; color: #718096;">
+                    ✍️ 직접 입력 (형식: 앞면 | 뒷면, 한 줄에 하나씩)
+                </p>
+                <textarea id="cards-input" placeholder="예시:&#10;안녕하세요 | Hello&#10;감사합니다 | Thank you&#10;사과 | Apple"></textarea>
+                <button onclick="addCards()">카드 추가</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 설정 모달 -->
+    <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+                <h2 style="margin-bottom: 20px; color: #667eea;">⚙️ 상자 크기 설정</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📦 1단 상자</label>
+                    <input type="number" id="box1-setting" min="10" max="10000" style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📦 2단 상자</label>
+                    <input type="number" id="box2-setting" min="10" max="10000" style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📦 3단 상자</label>
+                    <input type="number" id="box3-setting" min="10" max="10000" style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📦 4단 상자 (완전 암기 전)</label>
+                    <input type="number" id="box4-setting" min="10" max="10000" style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="saveSettings()" style="flex: 1; padding: 12px; background: #48bb78; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">저장</button>
+                    <button onclick="closeSettings()" style="flex: 1; padding: 12px; background: #718096; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="shared.js"></script>
+    <script>
+        // 네비게이션 추가
+        if (typeof createNavbar === 'function') {
+            document.getElementById('nav-container').appendChild(createNavbar('study'));
+        }
+        
+        // 라이선스 체크 (선택적)
+        if (typeof checkLicenseOnLoad === 'function') {
+            checkLicenseOnLoad();
+        }
+        
+        // 시스템 상태
+        const system = {
+            backlog: [],
+            currentStudy: [], // 현재 학습 중인 3장
+            stage1: [], // 1단 윗줄 (5칸)
+            stage2: [], // 2단 윗줄 (5칸)
+            stage3: [], // 3단 윗줄 (7칸)
+            box1: [], // 300장
+            box2: [], // 900장
+            box3: [], // 1800장
+            box4: [], // 3500장
+            mastered: []
+        };
+        
+        // 설정 (상자 크기)
+        const settings = {
+            box1Size: 300,
+            box2Size: 900,
+            box3Size: 1800,
+            box4Size: 3500,
+            fontSize: 28
+        };
+        
+        let currentCard = null;
+        let isFlipped = false;
+        let currentMode = 'initial'; // initial, stage1-verify, stage2-verify, stage3-verify, box-verify
+        // verifyingStage와 verifyIndex는 더 이상 사용하지 않음 - 실시간 배열 사용
+        
+        // 카드 추가
+        function addCards() {
+            const input = document.getElementById('cards-input');
+            const lines = input.value.trim().split('\n');
+            
+            lines.forEach(line => {
+                if (line.trim() && line.includes('|')) {
+                    const [front, back] = line.split('|').map(s => s.trim());
+                    if (front && back) {
+                        system.backlog.push({ front, back, id: Date.now() + Math.random() });
+                    }
+                }
+            });
+            
+            input.value = '';
+            updateDisplay();
+            loadNextCard();
+            saveToLocalStorage(); // 자동 저장
+        }
+        
+        // 엑셀 업로드
+        function uploadExcel() {
+            const fileInput = document.getElementById('excel-upload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('파일을 선택해주세요!');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    let addedCount = 0;
+                    rows.forEach(row => {
+                        if (row.length >= 2 && row[0] && row[1]) {
+                            const front = String(row[0]).trim();
+                            const back = String(row[1]).trim();
+                            if (front && back) {
+                                system.backlog.push({ front, back, id: Date.now() + Math.random() });
+                                addedCount++;
+                            }
+                        }
+                    });
+                    
+                    alert(`✅ ${addedCount}개의 카드를 추가했습니다!`);
+                    fileInput.value = '';
+                    updateDisplay();
+                    loadNextCard();
+                    saveToLocalStorage(); // 자동 저장
+                } catch (error) {
+                    alert('파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // 다음 카드 로드
+        function loadNextCard() {
+            // 검증 모드 먼저 체크 (우선순위: 높은 단계부터)
+            // 3단 확인: 3단 7장 + 2단 5장 + 1단 5장 모두 꽉 차 있어야 함
+            if (system.stage3.length === 7 && system.stage2.length === 5 && system.stage1.length === 5 && currentMode !== 'stage3-verify') {
+                currentMode = 'stage3-verify';
+                // 실시간 배열 사용 - 복사본 없음
+                if (system.stage3.length > 0) {
+                    currentCard = system.stage3[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            // 2단 확인: 2단 5장 + 1단 5장 꽉 차 있어야 함
+            if (system.stage2.length === 5 && system.stage1.length === 5 && currentMode !== 'stage2-verify') {
+                currentMode = 'stage2-verify';
+                if (system.stage2.length > 0) {
+                    currentCard = system.stage2[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            // 1단 확인: 1단이 5장 꽉 차면 가능
+            if (system.stage1.length === 5 && currentMode !== 'stage1-verify') {
+                currentMode = 'stage1-verify';
+                if (system.stage1.length > 0) {
+                    currentCard = system.stage1[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            // 검증 모드 중이지만 해당 배열이 비어있거나 조건 미달이면 종료
+            if (currentMode === 'stage1-verify') {
+                if (system.stage1.length === 0 || shouldInterruptVerification()) {
+                    finishVerification();
+                    return;
+                } else if (system.stage1.length > 0) {
+                    currentCard = system.stage1[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            if (currentMode === 'stage2-verify') {
+                if (system.stage2.length === 0 || shouldInterruptVerification()) {
+                    finishVerification();
+                    return;
+                } else if (system.stage2.length > 0) {
+                    currentCard = system.stage2[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            if (currentMode === 'stage3-verify') {
+                if (system.stage3.length === 0 || shouldInterruptVerification()) {
+                    finishVerification();
+                    return;
+                } else if (system.stage3.length > 0) {
+                    currentCard = system.stage3[0];
+                    isFlipped = false;
+                    displayCard();
+                    updateDisplay();
+                    return;
+                }
+            }
+            
+            // 상자 검증 모드
+            if (system.box1.length >= settings.box1Size && currentMode !== 'box1-verify') {
+                currentMode = 'box1-verify';
+                verifyingStage = [...system.box1];
+                verifyIndex = 0;
+                currentCard = verifyingStage[verifyIndex];
+                isFlipped = false;
+                displayCard();
+                updateDisplay();
+                return;
+            }
+            
+            if (system.box2.length >= settings.box2Size && currentMode !== 'box2-verify') {
+                currentMode = 'box2-verify';
+                verifyingStage = [...system.box2];
+                verifyIndex = 0;
+                currentCard = verifyingStage[verifyIndex];
+                isFlipped = false;
+                displayCard();
+                updateDisplay();
+                return;
+            }
+            
+            if (system.box3.length >= settings.box3Size && currentMode !== 'box3-verify') {
+                currentMode = 'box3-verify';
+                verifyingStage = [...system.box3];
+                verifyIndex = 0;
+                currentCard = verifyingStage[verifyIndex];
+                isFlipped = false;
+                displayCard();
+                updateDisplay();
+                return;
+            }
+            
+            if (system.box4.length >= settings.box4Size && currentMode !== 'box4-verify') {
+                currentMode = 'box4-verify';
+                verifyingStage = [...system.box4];
+                verifyIndex = 0;
+                currentCard = verifyingStage[verifyIndex];
+                isFlipped = false;
+                displayCard();
+                updateDisplay();
+                return;
+            }
+            
+            // 검증 모드가 아니면 기본 노출 모드
+            // 현재 학습 중인 카드가 3장 미만이면 대기풀에서 가져오기
+            while (system.currentStudy.length < 3 && system.backlog.length > 0) {
+                system.currentStudy.push(system.backlog.shift());
+            }
+            
+            // 학습할 카드가 있으면 표시
+            if (system.currentStudy.length > 0) {
+                currentCard = system.currentStudy[0];
+                currentMode = 'initial';
+                isFlipped = false;
+                displayCard();
+            } else {
+                // 학습할 카드 없음
+                document.getElementById('study-area').innerHTML = `
+                    <div class="no-cards">
+                        <h2>🎉 현재 학습할 카드가 없습니다!</h2>
+                        <p style="margin-top: 10px; color: #a0aec0;">카드를 더 추가하거나 상자가 가득 찰 때까지 기다려주세요.</p>
+                    </div>
+                `;
+            }
+            
+            updateDisplay();
+        }
+        
+        // 검증 모드 체크 (삭제 - loadNextCard에 통합됨)
+        function checkVerificationMode() {
+            // 이 함수는 더 이상 사용되지 않음
+        }
+        
+        // 카드 표시
+        function displayCard() {
+            let stageName = {
+                'initial': '🎯 기본 노출 (3장 반복)',
+                'stage1-verify': `✅ 1단 윗줄 검증`,
+                'stage2-verify': `✅ 2단 윗줄 검증`,
+                'stage3-verify': `✅ 3단 윗줄 검증`,
+                'box1-verify': `📦 1단 상자 검증`,
+                'box2-verify': `📦 2단 상자 검증`,
+                'box3-verify': `📦 3단 상자 검증`,
+                'box4-verify': `📦 4단 상자 검증 (완전 암기)`
+            }[currentMode];
+            
+            // 기본 노출 모드일 때 원형 배치
+            if (currentMode === 'initial' && system.currentStudy.length > 0) {
+                const cards = system.currentStudy;
+                
+                document.getElementById('study-area').innerHTML = `
+                    <div class="stage-label">${stageName}</div>
+                    <div style="position: relative; width: 100%; max-width: 800px; margin: 0 auto;">
+                        <button onclick="event.stopPropagation(); TTS.speak('${isFlipped ? currentCard.back.replace(/'/g, "\\'") : currentCard.front.replace(/'/g, "\\'")}', {force: true})" 
+                                style="position: absolute; top: -10px; right: 20px; background: rgba(255,255,255,0.95); border: 2px solid #667eea; font-size: 16px; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; z-index: 10;" 
+                                title="발음 듣기">
+                            🔊
+                        </button>
+                        <div style="min-height: 35px;"></div>
+                        <div class="circular-cards">
+                            ${cards.length > 1 ? `
+                                <div class="circular-card left">
+                                    <div>${cards[1].front}</div>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="circular-card center" onclick="flipCard()">
+                                ${isFlipped ? `
+                                    <div>${currentCard.back}</div>
+                                ` : `
+                                    <div>${currentCard.front}</div>
+                                `}
+                            </div>
+                            
+                            ${cards.length > 2 ? `
+                                <div class="circular-card right">
+                                    <div>${cards[2].front}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="buttons">
+                        ${isFlipped ? `
+                            <button class="btn btn-wrong" onclick="answerWrong()">모른다</button>
+                            <button class="btn btn-correct" onclick="answerCorrect()">안다</button>
+                        ` : `
+                            <button class="btn btn-flip" onclick="flipCard()">카드 뒤집기</button>
+                        `}
+                    </div>
+                `;
+                return;
+            }
+            
+            // 윗줄 검증 모드 (stage1, stage2, stage3) - 가로로 나열하고 현재 카드 강조
+            if (currentMode === 'stage1-verify' || currentMode === 'stage2-verify' || currentMode === 'stage3-verify') {
+                const stageArray = currentMode === 'stage1-verify' ? system.stage1 :
+                                  currentMode === 'stage2-verify' ? system.stage2 : system.stage3;
+                const remaining = stageArray.length;
+                
+                // 상단에 작은 카드들 표시
+                let smallCardsHTML = '<div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 5px; flex-wrap: wrap;">';
+                stageArray.forEach((card, index) => {
+                    const isCurrent = card.id === currentCard.id;
+                    smallCardsHTML += `
+                        <div style="background: ${isCurrent ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f7fafc'}; 
+                                    color: ${isCurrent ? 'white' : '#2d3748'};
+                                    border: 2px solid ${isCurrent ? '#667eea' : '#e2e8f0'};
+                                    border-radius: 5px; padding: 6px; 
+                                    min-width: 60px; height: 30px;
+                                    display: flex; align-items: center; justify-content: center;
+                                    text-align: center; font-size: 10px;
+                                    font-weight: ${isCurrent ? 'bold' : 'normal'};
+                                    box-shadow: ${isCurrent ? '0 2px 8px rgba(102, 126, 234, 0.4)' : '0 1px 3px rgba(0,0,0,0.1)'};
+                                    transform: ${isCurrent ? 'scale(1.05)' : 'scale(1)'};
+                                    transition: all 0.3s ease;">
+                            <div style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;">
+                                ${card.front.length > 10 ? card.front.substring(0, 10) + '...' : card.front}
+                            </div>
+                        </div>
+                    `;
+                });
+                smallCardsHTML += '</div>';
+                
+                document.getElementById('study-area').innerHTML = `
+                    <div class="stage-label">${stageName}</div>
+                    <div style="position: relative; width: 100%; max-width: 800px; margin: 0 auto;">
+                        <button onclick="event.stopPropagation(); TTS.speak('${isFlipped ? currentCard.back.replace(/'/g, "\\'") : currentCard.front.replace(/'/g, "\\'")}', {force: true})" 
+                                style="position: absolute; top: -10px; right: 20px; background: rgba(255,255,255,0.95); border: 2px solid #667eea; font-size: 16px; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; z-index: 10;" 
+                                title="발음 듣기">
+                            🔊
+                        </button>
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            ${smallCardsHTML}
+                        </div>
+                        <div class="circular-cards">
+                            <div class="circular-card center" onclick="flipCard()">
+                                ${isFlipped ? `
+                                    <div>${currentCard.back}</div>
+                                ` : `
+                                    <div>${currentCard.front}</div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buttons">${isFlipped ? `
+                            <button class="btn btn-wrong" onclick="answerWrong()">모른다</button>
+                            <button class="btn btn-correct" onclick="answerCorrect()">안다</button>
+                        ` : `
+                            <button class="btn btn-flip" onclick="flipCard()">카드 뒤집기</button>
+                        `}
+                    </div>
+                `;
+                return;
+            }
+            
+            // 상자 검증 모드일 때 진행 상황 표시
+            let progressHTML = '';
+            if (currentMode.includes('-verify')) {
+                let remaining = 0;
+                if (verifyingStage) remaining = verifyingStage.length - verifyIndex;
+                
+                if (remaining > 0) {
+                    progressHTML = `<div class="verification-progress">📋 남은 카드: ${remaining}장</div>`;
+                }
+            }
+            
+            // 상자 검증 모드는 기존 스타일
+            document.getElementById('study-area').innerHTML = `
+                <div class="stage-label">${stageName}</div>
+                ${progressHTML}
+                <div style="position: relative; width: 100%; max-width: 520px; margin: 0 auto;">
+                    <button onclick="event.stopPropagation(); TTS.speak('${isFlipped ? currentCard.back.replace(/'/g, "\\'") : currentCard.front.replace(/'/g, "\\'")}', {force: true})" 
+                            style="position: absolute; top: -45px; right: 0; background: rgba(255,255,255,0.95); border: 2px solid #667eea; font-size: 16px; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; z-index: 10;" 
+                            title="발음 듣기">
+                        🔊
+                    </button>
+                    <div class="flashcard ${isFlipped ? 'flipped' : ''}" onclick="flipCard()">
+                        ${isFlipped ? `
+                            <div class="card-label">뒷면</div>
+                            <div class="card-back">${currentCard.back}</div>
+                        ` : `
+                            <div class="card-label">앞면</div>
+                            <div class="card-front">${currentCard.front}</div>
+                        `}
+                    </div>
+                </div>
+                <div class="buttons">
+                    ${isFlipped ? `
+                        <button class="btn btn-wrong" onclick="answerWrong()">모른다</button>
+                        <button class="btn btn-correct" onclick="answerCorrect()">안다</button>
+                    ` : `
+                        <button class="btn btn-flip" onclick="flipCard()">카드 뒤집기</button>
+                    `}
+                </div>
+            `;
+        }
+        
+        // 카드 뒤집기
+        function flipCard() {
+            isFlipped = !isFlipped;
+            displayCard();
+            
+            // 자동 발음 (설정에서 활성화한 경우)
+            if (isFlipped && TTS.getSettings().autoPlay && currentCard) {
+                setTimeout(() => {
+                    TTS.speak(currentCard.back);
+                }, 100);
+            }
+        }
+        
+        // 틀린 경우
+        function answerWrong() {
+            if (currentMode === 'initial') {
+                // 기본 노출에서 틀림 → 현재 학습에서 제거, 대기풀 맨 앞으로
+                system.currentStudy.shift();
+                system.backlog.unshift(currentCard);
+                loadNextCard();
+            } else {
+                // 검증 모드에서 틀림 → 대기풀 맨 앞에 추가
+                system.backlog.unshift(currentCard);
+                
+                // 실제 배열에서도 제거 (실시간 반영)
+                if (currentMode === 'stage1-verify') {
+                    const index = system.stage1.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.stage1.splice(index, 1);
+                } else if (currentMode === 'stage2-verify') {
+                    const index = system.stage2.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.stage2.splice(index, 1);
+                } else if (currentMode === 'stage3-verify') {
+                    const index = system.stage3.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.stage3.splice(index, 1);
+                } else if (currentMode === 'box1-verify') {
+                    const index = system.box1.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.box1.splice(index, 1);
+                } else if (currentMode === 'box2-verify') {
+                    const index = system.box2.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.box2.splice(index, 1);
+                } else if (currentMode === 'box3-verify') {
+                    const index = system.box3.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.box3.splice(index, 1);
+                } else if (currentMode === 'box4-verify') {
+                    const index = system.box4.findIndex(c => c.id === currentCard.id);
+                    if (index !== -1) system.box4.splice(index, 1);
+                }
+                
+                // 다음 검증 카드로 이동
+                verifyIndex++;
+                
+                // 어느 단계인지 확인하고 적절히 처리
+                if (currentMode === 'stage1-verify') {
+                    if (shouldInterruptVerification()) {
+                        interruptVerification();
+                    } else if (system.stage1.length > 0) {
+                        currentCard = system.stage1[0];
+                        isFlipped = false;
+                        displayCard();
+                    } else {
+                        finishVerification();
+                    }
+                } else if (currentMode === 'stage2-verify') {
+                    if (shouldInterruptVerification()) {
+                        interruptVerification();
+                    } else if (system.stage2.length > 0) {
+                        currentCard = system.stage2[0];
+                        isFlipped = false;
+                        displayCard();
+                    } else {
+                        finishVerification();
+                    }
+                } else if (currentMode === 'stage3-verify') {
+                    if (system.stage3.length > 0) {
+                        currentCard = system.stage3[0];
+                        isFlipped = false;
+                        displayCard();
+                    } else {
+                        finishVerification();
+                    }
+                } else {
+                    // 상자 검증은 기존 로직 유지
+                    if (verifyIndex < verifyingStage.length) {
+                        currentCard = verifyingStage[verifyIndex];
+                        isFlipped = false;
+                        displayCard();
+                    } else {
+                        finishVerification();
+                    }
+                }
+            }
+            
+            updateDisplay();
+            saveToLocalStorage(); // 자동 저장
+        }
+        
+        // 맞은 경우
+        function answerCorrect() {
+            if (currentMode === 'initial') {
+                // 현재 학습에서 제거하고 1단 윗줄로
+                system.currentStudy.shift();
+                system.stage1.push(currentCard);
+                loadNextCard();
+            } else if (currentMode === 'stage1-verify') {
+                // 1단 검증 통과 → 실제 배열에서 제거하고 2단으로
+                const index = system.stage1.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.stage1.splice(index, 1);
+                system.stage2.push(currentCard);
+                
+                // 다음 검증 카드로
+                verifyIndex++;
+                
+                // 중단 조건 체크
+                if (shouldInterruptVerification()) {
+                    interruptVerification();
+                } else if (system.stage1.length > 0) {
+                    // 1단에 카드가 남아있으면 계속 (새로 들어온 카드 포함)
+                    currentCard = system.stage1[0];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    // 1단이 완전히 비었으면 종료
+                    finishVerification();
+                }
+            } else if (currentMode === 'stage2-verify') {
+                // 2단 검증 통과 → 실제 배열에서 제거하고 3단으로
+                const index = system.stage2.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.stage2.splice(index, 1);
+                system.stage3.push(currentCard);
+                
+                verifyIndex++;
+                
+                // 중단 조건 체크
+                if (shouldInterruptVerification()) {
+                    interruptVerification();
+                } else if (system.stage2.length > 0) {
+                    // 2단에 카드가 남아있으면 계속
+                    currentCard = system.stage2[0];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    // 2단이 완전히 비었으면 종료
+                    finishVerification();
+                }
+            } else if (currentMode === 'stage3-verify') {
+                // 3단 검증 통과 → 실제 배열에서 제거하고 1단 상자로
+                const index = system.stage3.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.stage3.splice(index, 1);
+                system.box1.push(currentCard);
+                
+                verifyIndex++;
+                
+                // 중단 조건 체크 (3단은 중단 없음)
+                if (system.stage3.length > 0) {
+                    // 3단에 카드가 남아있으면 계속
+                    currentCard = system.stage3[0];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    // 3단이 완전히 비었으면 종료
+                    finishVerification();
+                }
+            } else if (currentMode === 'box1-verify') {
+                // 1단 상자 통과 → 실제 배열에서 제거하고 2단 상자로
+                const index = system.box1.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.box1.splice(index, 1);
+                system.box2.push(currentCard);
+                
+                verifyIndex++;
+                
+                if (verifyIndex < verifyingStage.length) {
+                    currentCard = verifyingStage[verifyIndex];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    finishVerification();
+                }
+            } else if (currentMode === 'box2-verify') {
+                // 2단 상자 통과 → 실제 배열에서 제거하고 3단 상자로
+                const index = system.box2.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.box2.splice(index, 1);
+                system.box3.push(currentCard);
+                
+                verifyIndex++;
+                
+                if (verifyIndex < verifyingStage.length) {
+                    currentCard = verifyingStage[verifyIndex];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    finishVerification();
+                }
+            } else if (currentMode === 'box3-verify') {
+                // 3단 상자 통과 → 실제 배열에서 제거하고 4단 상자로
+                const index = system.box3.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.box3.splice(index, 1);
+                system.box4.push(currentCard);
+                
+                verifyIndex++;
+                
+                if (verifyIndex < verifyingStage.length) {
+                    currentCard = verifyingStage[verifyIndex];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    finishVerification();
+                }
+            } else if (currentMode === 'box4-verify') {
+                // 4단 상자 통과 → 실제 배열에서 제거하고 완전 암기!
+                const index = system.box4.findIndex(c => c.id === currentCard.id);
+                if (index !== -1) system.box4.splice(index, 1);
+                system.mastered.push(currentCard);
+                
+                verifyIndex++;
+                
+                if (verifyIndex < verifyingStage.length) {
+                    currentCard = verifyingStage[verifyIndex];
+                    isFlipped = false;
+                    displayCard();
+                } else {
+                    finishVerification();
+                }
+            }
+            
+            updateDisplay();
+            saveToLocalStorage(); // 자동 저장
+        }
+        
+        // 더 높은 우선순위 검증이 필요한지 체크
+        function shouldInterruptVerification() {
+            // 3단 확인 가능 여부 체크 (3단 7장 + 2단 5장 + 1단 5장)
+            // 3단 확인이 가능하면 무조건 중단
+            if (system.stage3.length === 7 && system.stage2.length === 5 && system.stage1.length === 5) {
+                if (currentMode === 'stage1-verify' || currentMode === 'stage2-verify') {
+                    return true;
+                }
+            }
+            
+            // 1단 확인 중 2단이 꽉 차면 무조건 중단 (더 이상 올릴 수 없음)
+            if (currentMode === 'stage1-verify' && system.stage2.length >= 5) {
+                return true;
+            }
+            
+            // 2단 확인 중 3단이 꽉 차면 무조건 중단 (더 이상 올릴 수 없음)
+            if (currentMode === 'stage2-verify' && system.stage3.length >= 7) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 검증 중단 및 우선순위에 따라 다음 단계로
+        function interruptVerification() {
+            // 중단된 단계는 그대로 유지 (비우지 않음!)
+            
+            // 검증 변수 초기화
+            verifyingStage = null;
+            verifyIndex = 0;
+            currentMode = 'initial';
+            
+            // 다음 카드 로드 (우선순위에 따라 자동 결정)
+            loadNextCard();
+        }
+        
+        // 검증 완료 처리
+        function finishVerification() {
+            // 실제 배열은 이미 실시간으로 업데이트되었으므로
+            // 혹시 남은 카드가 있다면 비우기 (중단된 경우 등)
+            if (currentMode === 'stage1-verify') {
+                system.stage1 = [];
+            } else if (currentMode === 'stage2-verify') {
+                system.stage2 = [];
+            } else if (currentMode === 'stage3-verify') {
+                system.stage3 = [];
+            } else if (currentMode === 'box1-verify') {
+                system.box1 = [];
+            } else if (currentMode === 'box2-verify') {
+                system.box2 = [];
+            } else if (currentMode === 'box3-verify') {
+                system.box3 = [];
+            } else if (currentMode === 'box4-verify') {
+                system.box4 = [];
+            }
+            
+            // 검증 변수 초기화
+            verifyingStage = null;
+            verifyIndex = 0;
+            currentMode = 'initial';
+            
+            // 다음 카드 로드 (우선순위에 따라 자동으로 결정)
+            loadNextCard();
+        }
+        
+        // 디스플레이 업데이트
+        function updateDisplay() {
+            // 통계 (요소가 있을 때만 업데이트)
+            const backlogCount = document.getElementById('backlog-count');
+            const currentCount = document.getElementById('current-count');
+            const masteredCount = document.getElementById('mastered-count');
+            
+            if (backlogCount) backlogCount.textContent = system.backlog.length;
+            if (currentCount) currentCount.textContent = system.currentStudy.length;
+            if (masteredCount) masteredCount.textContent = system.mastered.length;
+            
+            // 대기풀 카드 목록
+            const backlogDisplay = document.getElementById('backlog-cards');
+            if (backlogDisplay) {
+                if (system.backlog.length > 0) {
+                    backlogDisplay.innerHTML = system.backlog.map(card => `
+                        <div class="card-list-item">
+                            <div class="card-content">
+                                <strong>${card.front}</strong> → ${card.back}
+                            </div>
+                            <button class="delete-btn" onclick="deleteCard('${card.id}', 'backlog')">🗑️ 삭제</button>
+                        </div>
+                    `).join('');
+                } else {
+                    backlogDisplay.innerHTML = '<div style="color: #a0aec0; font-size: 14px; padding: 10px;">대기 중인 카드가 없습니다</div>';
+                }
+            }
+            
+            // 현재 학습 카드
+            const currentCardsDisplay = document.getElementById('current-cards-display');
+            if (currentCardsDisplay) {
+                if (system.currentStudy.length > 0) {
+                    currentCardsDisplay.innerHTML = system.currentStudy.map((card, i) => 
+                        `<div class="mini-card ${i === 0 ? 'active' : ''}">${card.front}</div>`
+                    ).join('');
+                } else {
+                    currentCardsDisplay.innerHTML = '<div style="color: #a0aec0; font-size: 14px;">학습 중인 카드 없음</div>';
+                }
+            }
+            
+            // 1단 윗줄
+            const stage1Slots = document.getElementById('stage1-slots');
+            if (stage1Slots) {
+                stage1Slots.innerHTML = Array(5).fill(0).map((_, i) => 
+                    `<div class="slot ${i < system.stage1.length ? 'filled' : ''}">
+                        ${i < system.stage1.length ? '✓' : ''}
+                    </div>`
+                ).join('');
+            }
+            
+            // 2단 윗줄
+            const stage2Slots = document.getElementById('stage2-slots');
+            if (stage2Slots) {
+                stage2Slots.innerHTML = Array(5).fill(0).map((_, i) => 
+                    `<div class="slot ${i < system.stage2.length ? 'filled' : ''}">
+                        ${i < system.stage2.length ? '✓' : ''}
+                    </div>`
+                ).join('');
+            }
+            
+            // 3단 윗줄
+            const stage3Slots = document.getElementById('stage3-slots');
+            if (stage3Slots) {
+                stage3Slots.innerHTML = Array(7).fill(0).map((_, i) => 
+                    `<div class="slot ${i < system.stage3.length ? 'filled' : ''}">
+                        ${i < system.stage3.length ? '✓' : ''}
+                    </div>`
+                ).join('');
+            }
+            
+            // 상자
+            const box1Count = document.getElementById('box1-count');
+            const box2Count = document.getElementById('box2-count');
+            const box3Count = document.getElementById('box3-count');
+            const box4Count = document.getElementById('box4-count');
+            
+            if (box1Count) box1Count.textContent = system.box1.length;
+            if (box2Count) box2Count.textContent = system.box2.length;
+            if (box3Count) box3Count.textContent = system.box3.length;
+            if (box4Count) box4Count.textContent = system.box4.length;
+            
+            // 상자 크기 설정 표시
+            const box1Size = document.getElementById('box1-size');
+            const box2Size = document.getElementById('box2-size');
+            const box3Size = document.getElementById('box3-size');
+            const box4Size = document.getElementById('box4-size');
+            
+            if (box1Size) box1Size.textContent = settings.box1Size;
+            if (box2Size) box2Size.textContent = settings.box2Size;
+            if (box3Size) box3Size.textContent = settings.box3Size;
+            if (box4Size) box4Size.textContent = settings.box4Size;
+        }
+        
+        // 설정 모달 열기
+        function openSettings() {
+            document.getElementById('box1-setting').value = settings.box1Size;
+            document.getElementById('box2-setting').value = settings.box2Size;
+            document.getElementById('box3-setting').value = settings.box3Size;
+            document.getElementById('box4-setting').value = settings.box4Size;
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+        
+        // 설정 모달 닫기
+        function closeSettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+        
+        // 설정 저장
+        function saveSettings() {
+            settings.box1Size = parseInt(document.getElementById('box1-setting').value) || 300;
+            settings.box2Size = parseInt(document.getElementById('box2-setting').value) || 900;
+            settings.box3Size = parseInt(document.getElementById('box3-setting').value) || 1800;
+            settings.box4Size = parseInt(document.getElementById('box4-setting').value) || 3500;
+            
+            // 설정도 로컬스토리지에 저장
+            saveToLocalStorage();
+            updateDisplay();
+            closeSettings();
+            alert('설정이 저장되었습니다!');
+        }
+        
+        // 카드 삭제
+        function deleteCard(cardId, location) {
+            if (!confirm('이 카드를 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            const id = parseFloat(cardId);
+            
+            if (location === 'backlog') {
+                system.backlog = system.backlog.filter(card => card.id !== id);
+            }
+            
+            updateDisplay();
+            saveToLocalStorage(); // 자동 저장
+        }
+        
+        // 대기풀 토글
+        function toggleBacklog() {
+            const content = document.getElementById('backlog-content');
+            const toggle = document.getElementById('backlog-toggle');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                toggle.textContent = '▼';
+            } else {
+                content.classList.add('open');
+                toggle.textContent = '▲';
+            }
+        }
+        
+        // 초기화
+        updateDisplay();
+        
+        // 자동 저장 함수
+        function saveToLocalStorage() {
+            const saveData = {
+                backlog: system.backlog,
+                currentStudy: system.currentStudy,
+                stage1: system.stage1,
+                stage2: system.stage2,
+                stage3: system.stage3,
+                box1: system.box1,
+                box2: system.box2,
+                box3: system.box3,
+                box4: system.box4,
+                mastered: system.mastered,
+                settings: settings
+            };
+            RecallFlow.saveData(saveData);
+        }
+        
+        // 불러오기 함수
+        function loadFromLocalStorage() {
+            try {
+                const data = RecallFlow.loadData();
+                
+                // 상자와 완전 암기만 복원
+                system.box1 = data.box1 || [];
+                system.box2 = data.box2 || [];
+                system.box3 = data.box3 || [];
+                system.box4 = data.box4 || [];
+                system.mastered = data.mastered || [];
+                
+                // 대기풀 복원
+                system.backlog = data.backlog || [];
+                
+                // 설정 복원
+                if (data.settings) {
+                    settings.box1Size = data.settings.box1Size || 300;
+                    settings.box2Size = data.settings.box2Size || 900;
+                    settings.box3Size = data.settings.box3Size || 1800;
+                    settings.box4Size = data.settings.box4Size || 3500;
+                    settings.fontSize = data.settings.fontSize || 28;
+                }
+                
+                // 윗줄 복원 또는 초기화
+                system.currentStudy = data.currentStudy || [];
+                system.stage1 = data.stage1 || [];
+                system.stage2 = data.stage2 || [];
+                system.stage3 = data.stage3 || [];
+                
+                // 검증 상태 초기화
+                currentMode = 'initial';
+                verifyingStage = null;
+                verifyIndex = 0;
+                isFlipped = false;
+                currentCard = null;
+                
+                updateDisplay();
+                loadNextCard();
+                
+                return true;
+            } catch (e) {
+                console.error('불러오기 실패:', e);
+                return false;
+            }
+        }
+        
+        // 데이터 초기화 함수
+        function resetAllData() {
+            if (confirm('정말로 모든 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                // 로컬스토리지 삭제
+                localStorage.removeItem('recallFlowData');
+                
+                // 모든 변수 초기화
+                system.backlog = [];
+                system.currentStudy = [];
+                system.stage1 = [];
+                system.stage2 = [];
+                system.stage3 = [];
+                system.box1 = [];
+                system.box2 = [];
+                system.box3 = [];
+                system.box4 = [];
+                system.mastered = [];
+                
+                // 설정 초기화
+                settings.box1Size = 300;
+                settings.box2Size = 900;
+                settings.box3Size = 1800;
+                settings.box4Size = 3500;
+                
+                // 상태 초기화
+                currentCard = null;
+                isFlipped = false;
+                currentMode = 'initial';
+                verifyingStage = null;
+                verifyIndex = 0;
+                
+                // 화면 업데이트
+                updateDisplay();
+                
+                // 빈 화면 표시
+                document.getElementById('study-area').innerHTML = `
+                    <div class="no-cards">
+                        <h2>👋 카드를 추가해서 시작하세요!</h2>
+                        <p style="margin-top: 10px; color: #a0aec0;">아래에서 카드를 추가하면 학습이 시작됩니다.</p>
+                    </div>
+                `;
+                
+                alert('✅ 모든 데이터가 초기화되었습니다!');
+            }
+        }
+        
+        // 글씨 크기 설정 적용
+        function applyFontSize() {
+            const fontSize = settings.fontSize || 28;
+            console.log('📝 Applying font size:', fontSize + 'px');
+            const style = document.createElement('style');
+            style.id = 'custom-font-size';
+            style.textContent = `
+                .circular-card.center {
+                    font-size: ${fontSize}px !important;
+                }
+            `;
+            // 기존 스타일 제거 후 추가
+            const existing = document.getElementById('custom-font-size');
+            if (existing) existing.remove();
+            document.head.appendChild(style);
+        }
+        
+        // 페이지 로드 시 자동 불러오기
+        if (loadFromLocalStorage()) {
+            console.log('저장된 데이터를 불러왔습니다.');
+        }
+        
+        // 글씨 크기 적용 (데이터 로드 후)
+        applyFontSize();
+        
+        // ⌨️ 키보드 단축키 설정
+        document.addEventListener('keydown', (e) => {
+            // 입력 필드에서는 단축키 비활성화
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // 카드가 없으면 단축키 비활성화
+            if (!currentCard) {
+                return;
+            }
+            
+            switch(e.key) {
+                case ' ':           // 스페이스바
+                case 'ArrowDown':   // ↓
+                    e.preventDefault();
+                    flipCard();
+                    break;
+                    
+                case '1':           // 1번 키
+                case 'ArrowLeft':   // ←
+                    e.preventDefault();
+                    answerWrong(); // 모른다 (언제든지 가능)
+                    break;
+                    
+                case '2':           // 2번 키
+                case 'ArrowRight':  // →
+                    e.preventDefault();
+                    answerCorrect(); // 안다 (언제든지 가능)
+                    break;
+                    
+                case 's':           // S키
+                case 'S':           // S키 (대문자)
+                case 'ArrowUp':     // ↑
+                    e.preventDefault();
+                    // 앞면/뒷면 구분해서 읽기
+                    if (isFlipped) {
+                        TTS.speak(currentCard.back, {force: true}); // 뒷면 읽기
+                    } else {
+                        TTS.speak(currentCard.front, {force: true}); // 앞면 읽기
+                    }
+                    break;
+            }
+        });
+        
+        console.log('⌨️ 키보드 단축키 활성화됨: 스페이스/↓(뒤집기), ↑/S(음성), 1/←(모른다), 2/→(안다)');
+    </script>
+</body>
+</html>

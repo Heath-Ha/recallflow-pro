@@ -1,0 +1,294 @@
+<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Flow Pro - 상자 시스템</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .box-section {
+            margin-bottom: 20px;
+        }
+        
+        .box-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .box-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .toggle-icon {
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .box-progress {
+            background: rgba(255,255,255,0.2);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .box-progress-bar {
+            background: white;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .box-content {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .box-content.show {
+            max-height: 10000px;
+        }
+        
+        .card-item {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .card-item:hover {
+            background: #e2e8f0;
+        }
+        
+        .empty-box {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .page-btn {
+            padding: 6px 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: #f7fafc;
+            border-color: #667eea;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            color: #718096;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        const cardsPerPage = 30;
+        const boxPages = {
+            box1: 1,
+            box2: 1,
+            box3: 1,
+            box4: 1,
+            mastered: 1
+        };
+        
+        if (!checkLicenseOnLoad()) {
+        } else {
+            init();
+        }
+
+        function init() {
+            const container = document.getElementById('app');
+            container.insertBefore(createNavbar('boxes'), container.firstChild);
+
+            const data = RecallFlow.loadData();
+            renderBoxes(data);
+        }
+
+        function renderBoxes(data) {
+            const mainContent = document.createElement('div');
+            mainContent.className = 'main-content';
+            mainContent.id = 'main-content';
+            
+            mainContent.innerHTML = `
+                <h1 style="margin-bottom: 20px;">📦 상자 시스템</h1>
+                <p style="color: #718096; margin-bottom: 30px;">
+                    각 상자 제목을 클릭하면 카드 목록을 볼 수 있습니다. 숫자가 클수록 더 잘 외운 카드입니다.
+                </p>
+                
+                <div id="box1-section"></div>
+                <div id="box2-section"></div>
+                <div id="box3-section"></div>
+                <div id="box4-section"></div>
+                <div id="mastered-section"></div>
+            `;
+
+            document.getElementById('app').appendChild(mainContent);
+            
+            renderBoxSection('box1', '1단 상자', data.box1, data.settings.box1Size, '#667eea');
+            renderBoxSection('box2', '2단 상자', data.box2, data.settings.box2Size, '#764ba2');
+            renderBoxSection('box3', '3단 상자', data.box3, data.settings.box3Size, '#ed8936');
+            renderBoxSection('box4', '4단 상자', data.box4, data.settings.box4Size, '#f6ad55');
+            renderBoxSection('mastered', '✨ 완전 암기', data.mastered, null, '#48bb78');
+        }
+
+        function renderBoxSection(boxId, title, cards, targetSize, color) {
+            const progress = targetSize ? (cards.length / targetSize) * 100 : 100;
+            const section = document.getElementById(boxId + '-section');
+            
+            section.innerHTML = `
+                <div class="box-section">
+                    <div class="box-header" style="background: ${color};" onclick="toggleBox('${boxId}')">
+                        <div style="flex: 1;">
+                            <h2 style="margin-bottom: 5px;">${title}</h2>
+                            <div style="font-size: 14px; opacity: 0.9;">
+                                ${cards.length}장${targetSize ? ` / ${targetSize}장` : ''} 
+                                ${targetSize && cards.length >= targetSize ? '✅ 확인 가능!' : ''}
+                            </div>
+                            ${targetSize ? `
+                                <div class="box-progress">
+                                    <div class="box-progress-bar" style="width: ${Math.min(progress, 100)}%;"></div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="toggle-icon" id="${boxId}-toggle">▼</div>
+                    </div>
+                    <div class="box-content" id="${boxId}-content">
+                        <div id="${boxId}-cards"></div>
+                    </div>
+                </div>
+            `;
+            
+            updateBoxCards(boxId, cards);
+        }
+
+        function toggleBox(boxId) {
+            const content = document.getElementById(boxId + '-content');
+            const toggle = document.getElementById(boxId + '-toggle');
+            
+            content.classList.toggle('show');
+            toggle.classList.toggle('rotated');
+        }
+
+        function updateBoxCards(boxId, cards) {
+            const container = document.getElementById(boxId + '-cards');
+            const currentPage = boxPages[boxId];
+            
+            if (cards.length === 0) {
+                container.innerHTML = '<div class="empty-box">📭 아직 카드가 없습니다</div>';
+                return;
+            }
+            
+            const totalPages = Math.ceil(cards.length / cardsPerPage);
+            const startIndex = (currentPage - 1) * cardsPerPage;
+            const endIndex = startIndex + cardsPerPage;
+            const currentCards = cards.slice(startIndex, endIndex);
+            
+            let html = `
+                <div style="margin-bottom: 15px; color: #718096; font-size: 14px;">
+                    전체 <strong>${cards.length}</strong>장 중 <strong>${startIndex + 1}-${Math.min(endIndex, cards.length)}</strong>장 표시
+                </div>
+            `;
+            
+            currentCards.forEach((card, index) => {
+                html += `
+                    <div class="card-item">
+                        <div>
+                            <strong>${startIndex + index + 1}.</strong>
+                            ${escapeHtml(card.front)} → ${escapeHtml(card.back)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (totalPages > 1) {
+                html += `
+                    <div class="pagination">
+                        <button class="page-btn" onclick="goToBoxPage('${boxId}', 1)" ${currentPage === 1 ? 'disabled' : ''}>
+                            ⏮️
+                        </button>
+                        <button class="page-btn" onclick="goToBoxPage('${boxId}', ${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                            ◀️
+                        </button>
+                        
+                        <span class="page-info">
+                            ${currentPage} / ${totalPages}
+                        </span>
+                        
+                        <button class="page-btn" onclick="goToBoxPage('${boxId}', ${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            ▶️
+                        </button>
+                        <button class="page-btn" onclick="goToBoxPage('${boxId}', ${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            ⏭️
+                        </button>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function goToBoxPage(boxId, page) {
+            boxPages[boxId] = page;
+            const data = RecallFlow.loadData();
+            const cards = boxId === 'box1' ? data.box1 :
+                         boxId === 'box2' ? data.box2 :
+                         boxId === 'box3' ? data.box3 :
+                         boxId === 'box4' ? data.box4 :
+                         data.mastered;
+            updateBoxCards(boxId, cards);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

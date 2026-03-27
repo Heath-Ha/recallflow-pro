@@ -1,0 +1,218 @@
+<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Flow Pro - 덱 관리</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .deck-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .deck-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .deck-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        }
+        
+        .deck-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .deck-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .deck-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .deck-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- 네비게이션은 JS로 삽입 -->
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        if (!checkLicenseOnLoad()) {
+            // 라이선스 실패
+        } else {
+            init();
+        }
+
+        function init() {
+            const container = document.getElementById('app');
+            container.insertBefore(createNavbar('decks'), container.firstChild);
+
+            renderDecks();
+        }
+
+        function renderDecks() {
+            const allDecks = DeckManager.getAllDecks();
+            const currentDeck = DeckManager.getCurrentDeck();
+
+            const mainContent = document.createElement('div');
+            mainContent.className = 'main-content';
+            
+            mainContent.innerHTML = `
+                <h1 style="margin-bottom: 20px;">🗂️ 덱 관리</h1>
+                <p style="color: #718096; margin-bottom: 30px;">
+                    학습자별, 과목별로 덱을 나눠서 관리하세요. 각 덱은 완전히 독립적인 데이터를 가집니다.
+                </p>
+
+                <button class="btn btn-primary" onclick="createNewDeck()" style="margin-bottom: 30px;">
+                    ➕ 새 덱 만들기
+                </button>
+
+                <div id="deck-list">
+                    ${allDecks.map(deck => renderDeckCard(deck, currentDeck)).join('')}
+                </div>
+            `;
+
+            document.getElementById('app').appendChild(mainContent);
+        }
+
+        function renderDeckCard(deck, currentDeck) {
+            const stats = DeckManager.getDeckStats(deck.name);
+            const isActive = deck.name === currentDeck;
+            const isDefault = deck.name === 'default';
+
+            return `
+                <div class="deck-card ${isActive ? 'active' : ''}">
+                    <div class="deck-header">
+                        <div>
+                            <div class="deck-name">
+                                ${deck.displayName}
+                                ${isActive ? '<span style="color: #667eea; font-size: 14px; margin-left: 10px;">● 현재 사용중</span>' : ''}
+                            </div>
+                            <div style="font-size: 12px; color: #a0aec0; margin-top: 5px;">
+                                생성일: ${new Date(deck.createdAt).toLocaleDateString('ko-KR')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="deck-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">전체 카드</div>
+                            <div class="stat-value">${stats.totalCards}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">대기 중</div>
+                            <div class="stat-value" style="color: #f6ad55;">${stats.backlog}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">학습 중</div>
+                            <div class="stat-value" style="color: #4299e1;">${stats.studying}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">완전 암기</div>
+                            <div class="stat-value" style="color: #48bb78;">${stats.mastered}</div>
+                        </div>
+                    </div>
+
+                    <div class="deck-actions">
+                        ${!isActive ? `
+                            <button class="btn btn-primary" onclick="switchToDeck('${deck.name}')">
+                                이 덱으로 전환
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="renameDeckPrompt('${deck.name}', '${deck.displayName}')">
+                            ✏️ 이름 변경
+                        </button>
+                        ${!isDefault ? `
+                            <button class="btn btn-danger" onclick="deleteDeckConfirm('${deck.name}', '${deck.displayName}')">
+                                🗑️ 삭제
+                            </button>
+                        ` : '<span style="color: #a0aec0; font-size: 14px; padding: 10px;">기본 덱은 삭제할 수 없습니다</span>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createNewDeck() {
+            const name = prompt('새 덱의 이름을 입력하세요:');
+            if (name && name.trim()) {
+                const deckName = DeckManager.createDeck(name.trim());
+                alert(`✅ "${name}" 덱이 생성되었습니다!`);
+                location.reload();
+            }
+        }
+
+        function switchToDeck(deckName) {
+            DeckManager.setCurrentDeck(deckName);
+            alert('✅ 덱이 전환되었습니다!');
+            location.reload();
+        }
+
+        function renameDeckPrompt(deckName, currentName) {
+            const newName = prompt('새 이름을 입력하세요:', currentName);
+            if (newName && newName.trim() && newName !== currentName) {
+                const result = DeckManager.renameDeck(deckName, newName.trim());
+                if (result.success) {
+                    alert('✅ 이름이 변경되었습니다!');
+                    location.reload();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            }
+        }
+
+        function deleteDeckConfirm(deckName, displayName) {
+            if (confirm(`정말로 "${displayName}" 덱을 삭제하시겠습니까?\n\n⚠️ 이 덱의 모든 카드와 데이터가 영구적으로 삭제됩니다!`)) {
+                const result = DeckManager.deleteDeck(deckName);
+                if (result.success) {
+                    alert('✅ 덱이 삭제되었습니다.');
+                    location.reload();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

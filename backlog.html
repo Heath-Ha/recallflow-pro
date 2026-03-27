@@ -1,0 +1,382 @@
+<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Flow Pro - 대기풀 관리</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .backlog-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .card-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .card-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .card-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .delete-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #e53e3e;
+        }
+
+        .edit-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 4px;
+        }
+
+        .edit-btn:hover {
+            background: #3182ce;
+        }
+
+        .action-cell {
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+
+        .search-box {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 300px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .page-btn:hover {
+            background: #f7fafc;
+            border-color: #667eea;
+        }
+        
+        .page-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            color: #718096;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- 네비게이션은 JS로 삽입 -->
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        let currentData = null;
+        let filteredCards = [];
+        let currentPage = 1;
+        const cardsPerPage = 50;
+
+        if (!checkLicenseOnLoad()) {
+            // 라이선스 실패
+        } else {
+            init();
+        }
+
+        function init() {
+            const container = document.getElementById('app');
+            container.insertBefore(createNavbar('backlog'), container.firstChild);
+
+            currentData = RecallFlow.loadData();
+            filteredCards = [...currentData.backlog];
+            renderBacklog();
+        }
+
+        function renderBacklog() {
+            const mainContent = document.createElement('div');
+            mainContent.className = 'main-content';
+            mainContent.id = 'main-content';
+            
+            mainContent.innerHTML = `
+                <h1 style="margin-bottom: 20px;">📚 대기풀 관리</h1>
+                <p style="color: #718096; margin-bottom: 30px;">
+                    대기 중인 카드: <strong>${currentData.backlog.length}장</strong>
+                </p>
+
+                <div class="backlog-controls">
+                    <input type="text" class="search-box" id="search-box" placeholder="🔍 카드 검색..." onkeyup="searchCards()">
+                    <button class="btn btn-secondary" onclick="sortCards('front')">
+                        ⬆️ 앞면 정렬
+                    </button>
+                    <button class="btn btn-secondary" onclick="sortCards('back')">
+                        ⬆️ 뒷면 정렬
+                    </button>
+                    <button class="btn btn-secondary" onclick="shuffleCards()">
+                        🔀 섞기
+                    </button>
+                    <button class="btn btn-primary" onclick="flipAllCards()">
+                        ↔️ 전체 앞뒤 바꾸기
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllBacklog()">
+                        🗑️ 전체 삭제
+                    </button>
+                </div>
+
+                <div id="card-list">
+                    ${renderCardList()}
+                </div>
+            `;
+
+            const existing = document.getElementById('main-content');
+            if (existing) {
+                existing.replaceWith(mainContent);
+            } else {
+                document.getElementById('app').appendChild(mainContent);
+            }
+        }
+
+        function renderCardList() {
+            if (filteredCards.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <h2>📭 대기풀이 비어있습니다</h2>
+                        <p style="margin-top: 10px;">설정에서 새로운 카드를 추가하세요.</p>
+                        <a href="settings.html" class="btn btn-primary" style="margin-top: 20px; display: inline-block; text-decoration: none;">
+                            ➕ 카드 추가하기
+                        </a>
+                    </div>
+                `;
+            }
+
+            // 페이지네이션 계산
+            const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+            const startIndex = (currentPage - 1) * cardsPerPage;
+            const endIndex = startIndex + cardsPerPage;
+            const currentCards = filteredCards.slice(startIndex, endIndex);
+
+            return `
+                <div style="margin-bottom: 15px; color: #718096;">
+                    전체 <strong>${filteredCards.length}</strong>장 중 <strong>${startIndex + 1}-${Math.min(endIndex, filteredCards.length)}</strong>장 표시
+                </div>
+                
+                <table class="card-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">#</th>
+                            <th>앞면</th>
+                            <th>뒷면</th>
+                            <th style="width: 160px;">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${currentCards.map((card, index) => `
+                            <tr>
+                                <td>${startIndex + index + 1}</td>
+                                <td>${escapeHtml(card.front)}</td>
+                                <td>${escapeHtml(card.back)}</td>
+                                <td class="action-cell">
+                                    <button class="edit-btn" onclick="flipCard('${card.id}')" title="앞뒤 바꾸기">↔️</button>
+                                    <button class="edit-btn" onclick="editCard('${card.id}')" title="수정">✏️</button>
+                                    <button class="delete-btn" onclick="deleteCard('${card.id}')" title="삭제">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                ${totalPages > 1 ? `
+                    <div class="pagination">
+                        <button class="page-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>
+                            ⏮️ 처음
+                        </button>
+                        <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                            ◀️ 이전
+                        </button>
+                        
+                        <span class="page-info">
+                            ${currentPage} / ${totalPages} 페이지
+                        </span>
+                        
+                        <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            다음 ▶️
+                        </button>
+                        <button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            마지막 ⏭️
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            updateCardList();
+        }
+
+        function searchCards() {
+            const query = document.getElementById('search-box').value.toLowerCase();
+            filteredCards = currentData.backlog.filter(card => 
+                card.front.toLowerCase().includes(query) || 
+                card.back.toLowerCase().includes(query)
+            );
+            currentPage = 1; // 검색 시 첫 페이지로
+            updateCardList();
+        }
+
+        function sortCards(field) {
+            filteredCards.sort((a, b) => a[field].localeCompare(b[field]));
+            currentPage = 1; // 정렬 시 첫 페이지로
+            updateCardList();
+        }
+
+        function shuffleCards() {
+            for (let i = filteredCards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [filteredCards[i], filteredCards[j]] = [filteredCards[j], filteredCards[i]];
+            }
+            
+            currentData.backlog = [...filteredCards];
+            RecallFlow.saveData(currentData);
+            currentPage = 1; // 섞기 시 첫 페이지로
+            updateCardList();
+        }
+
+        function editCard(id) {
+            const card = currentData.backlog.find(c => c.id == id);
+            if (!card) return;
+
+            const newFront = prompt('앞면:', card.front);
+            if (newFront === null) return;
+
+            const newBack = prompt('뒷면:', card.back);
+            if (newBack === null) return;
+
+            card.front = newFront.trim();
+            card.back = newBack.trim();
+
+            RecallFlow.saveData(currentData);
+            filteredCards = [...currentData.backlog];
+            updateCardList();
+        }
+
+        function deleteCard(id) {
+            if (confirm('이 카드를 삭제하시겠습니까?')) {
+                currentData.backlog = currentData.backlog.filter(c => c.id != id);
+                filteredCards = filteredCards.filter(c => c.id != id);
+                RecallFlow.saveData(currentData);
+                updateCardList();
+                
+                // 상단 카운트 업데이트
+                document.querySelector('p strong').textContent = currentData.backlog.length + '장';
+            }
+        }
+
+        function flipCard(id) {
+            const card = currentData.backlog.find(c => c.id == id);
+            if (!card) return;
+
+            // 앞면과 뒷면 바꾸기
+            const temp = card.front;
+            card.front = card.back;
+            card.back = temp;
+
+            RecallFlow.saveData(currentData);
+            filteredCards = [...currentData.backlog];
+            updateCardList();
+        }
+
+        function flipAllCards() {
+            if (confirm(`대기풀의 모든 카드(${currentData.backlog.length}장)의 앞뒤를 바꾸시겠습니까?`)) {
+                currentData.backlog.forEach(card => {
+                    const temp = card.front;
+                    card.front = card.back;
+                    card.back = temp;
+                });
+
+                RecallFlow.saveData(currentData);
+                filteredCards = [...currentData.backlog];
+                updateCardList();
+                
+                alert('✅ 모든 카드의 앞뒤가 바뀌었습니다!');
+            }
+        }
+
+        function clearAllBacklog() {
+            if (confirm('정말로 대기풀의 모든 카드를 삭제하시겠습니까?')) {
+                currentData.backlog = [];
+                filteredCards = [];
+                RecallFlow.saveData(currentData);
+                renderBacklog();
+            }
+        }
+
+        function updateCardList() {
+            document.getElementById('card-list').innerHTML = renderCardList();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

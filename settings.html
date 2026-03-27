@@ -1,0 +1,402 @@
+<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Flow Pro - 설정</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- 네비게이션은 JS로 삽입 -->
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        if (!checkLicenseOnLoad()) {
+            // 라이선스 실패
+        } else {
+            init();
+        }
+
+        function init() {
+            const container = document.getElementById('app');
+            container.insertBefore(createNavbar('settings'), container.firstChild);
+
+            renderSettings();
+        }
+
+        function renderSettings() {
+            const data = RecallFlow.loadData();
+            
+            const mainContent = document.createElement('div');
+            mainContent.className = 'main-content';
+            
+            mainContent.innerHTML = `
+                <h1 style="margin-bottom: 30px;">⚙️ 설정</h1>
+
+                <!-- 카드 추가 섹션 -->
+                <div class="card">
+                    <h2 class="card-title">➕ 카드 추가하기</h2>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 10px;">📝 텍스트로 추가</h3>
+                        <p style="color: #718096; font-size: 14px; margin-bottom: 10px;">
+                            형식: 앞면|뒷면 (한 줄에 하나씩)
+                        </p>
+                        <textarea id="cards-input" rows="6" placeholder="예시:
+apple|사과
+banana|바나나
+cat|고양이"></textarea>
+                        <button class="btn btn-primary" onclick="addCardsFromText()" style="margin-top: 10px;">
+                            추가하기
+                        </button>
+                    </div>
+
+                    <div>
+                        <h3 style="margin-bottom: 10px;">📊 엑셀/CSV 파일로 추가</h3>
+                        <p style="color: #718096; font-size: 14px; margin-bottom: 10px;">
+                            첫 번째 열: 앞면, 두 번째 열: 뒷면
+                        </p>
+                        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="margin-bottom: 10px;">
+                        <button class="btn btn-primary" onclick="uploadFile()">
+                            파일 업로드
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 상자 크기 설정 -->
+                <div class="card">
+                    <h2 class="card-title">📦 상자 크기 조정</h2>
+                    <p style="color: #718096; font-size: 14px; margin-bottom: 20px;">
+                        각 상자가 꽉 찰 때 필요한 카드 수를 설정하세요.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">1단 상자</label>
+                            <input type="number" id="box1-size" value="${data.settings.box1Size}" min="10" max="10000">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">2단 상자</label>
+                            <input type="number" id="box2-size" value="${data.settings.box2Size}" min="10" max="10000">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">3단 상자</label>
+                            <input type="number" id="box3-size" value="${data.settings.box3Size}" min="10" max="10000">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">4단 상자</label>
+                            <input type="number" id="box4-size" value="${data.settings.box4Size}" min="10" max="10000">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" onclick="saveBoxSizes()" style="margin-top: 20px;">
+                        💾 저장
+                    </button>
+                </div>
+
+                <!-- 카드 표시 설정 -->
+                <div class="card">
+                    <h2 class="card-title">🔤 카드 표시 설정</h2>
+                    <p style="color: #718096; font-size: 14px; margin-bottom: 20px;">
+                        학습 화면의 카드 글씨 크기를 조정하세요.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">카드 글씨 크기 (px)</label>
+                            <input type="number" id="font-size" value="${data.settings.fontSize || 28}" min="20" max="144" step="2">
+                            <small style="display: block; margin-top: 5px; color: #718096;">권장: 24-72px</small>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" onclick="saveFontSize()" style="margin-top: 20px;">
+                        💾 저장
+                    </button>
+                </div>
+
+                <!-- TTS 음성 설정 -->
+                <div class="card">
+                    <h2 class="card-title">🔊 음성 발음 설정</h2>
+                    <p style="color: #718096; font-size: 14px; margin-bottom: 20px;">
+                        카드 내용을 소리내어 읽어줍니다. (브라우저 내장 TTS)
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="tts-enabled" ${TTS.getSettings().enabled ? 'checked' : ''}>
+                                <span style="font-weight: bold;">음성 발음 활성화</span>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="tts-autoplay" ${TTS.getSettings().autoPlay ? 'checked' : ''}>
+                                <span style="font-weight: bold;">자동 발음 (카드 뒤집을 때)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">언어</label>
+                            <select id="tts-language" style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                                <option value="auto" ${TTS.getSettings().language === 'auto' ? 'selected' : ''}>자동 감지</option>
+                                <option value="ko-KR" ${TTS.getSettings().language === 'ko-KR' ? 'selected' : ''}>한국어</option>
+                                <option value="en-US" ${TTS.getSettings().language === 'en-US' ? 'selected' : ''}>영어 (미국)</option>
+                                <option value="en-GB" ${TTS.getSettings().language === 'en-GB' ? 'selected' : ''}>영어 (영국)</option>
+                                <option value="ja-JP" ${TTS.getSettings().language === 'ja-JP' ? 'selected' : ''}>일본어</option>
+                                <option value="zh-CN" ${TTS.getSettings().language === 'zh-CN' ? 'selected' : ''}>중국어 (간체)</option>
+                                <option value="es-ES" ${TTS.getSettings().language === 'es-ES' ? 'selected' : ''}>스페인어</option>
+                                <option value="fr-FR" ${TTS.getSettings().language === 'fr-FR' ? 'selected' : ''}>프랑스어</option>
+                                <option value="de-DE" ${TTS.getSettings().language === 'de-DE' ? 'selected' : ''}>독일어</option>
+                                <option value="it-IT" ${TTS.getSettings().language === 'it-IT' ? 'selected' : ''}>이탈리아어</option>
+                                <option value="ru-RU" ${TTS.getSettings().language === 'ru-RU' ? 'selected' : ''}>러시아어</option>
+                                <option value="id-ID" ${TTS.getSettings().language === 'id-ID' ? 'selected' : ''}>인도네시아어</option>
+                                <option value="th-TH" ${TTS.getSettings().language === 'th-TH' ? 'selected' : ''}>태국어</option>
+                                <option value="vi-VN" ${TTS.getSettings().language === 'vi-VN' ? 'selected' : ''}>베트남어</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">속도: <span id="rate-value">${TTS.getSettings().rate.toFixed(1)}x</span></label>
+                            <input type="range" id="tts-rate" min="0.5" max="2.0" step="0.1" value="${TTS.getSettings().rate}" 
+                                   style="width: 100%;" oninput="document.getElementById('rate-value').textContent = this.value + 'x'">
+                            <small style="display: block; margin-top: 5px; color: #718096;">느리게 ← → 빠르게</small>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 15px; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                        <p style="margin-bottom: 10px; font-weight: bold;">🎧 테스트:</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="testTTS('Hello, this is a test.')">
+                                영어 테스트
+                            </button>
+                            <button class="btn btn-secondary" onclick="testTTS('안녕하세요, 테스트입니다.')">
+                                한국어 테스트
+                            </button>
+                            <button class="btn btn-secondary" onclick="testTTS('こんにちは、テストです。')">
+                                일본어 테스트
+                            </button>
+                            <button class="btn btn-secondary" onclick="testTTS('你好，这是测试。')">
+                                중국어 테스트
+                            </button>
+                            <button class="btn btn-danger" onclick="TTS.stop()">
+                                🔇 중지
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" onclick="saveTTSSettings()" style="margin-top: 20px;">
+                        💾 저장
+                    </button>
+                </div>
+
+                <!-- 데이터 관리 -->
+                <div class="card">
+                    <h2 class="card-title">🗂️ 데이터 관리</h2>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="exportData()">
+                            📥 내보내기 (JSON)
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-input').click()">
+                            📤 가져오기 (JSON)
+                        </button>
+                        <input type="file" id="import-input" accept=".json" style="display: none;" onchange="importData(event)">
+                        <button class="btn btn-danger" onclick="resetAllData()">
+                            🗑️ 현재 덱 초기화
+                        </button>
+                        <button class="btn btn-danger" onclick="completeReset()" style="background: #c53030;">
+                            ⚠️ 완전 초기화
+                        </button>
+                    </div>
+                    <p style="margin-top: 10px; color: #718096; font-size: 14px;">
+                        • 현재 덱 초기화: 이 덱의 카드만 삭제<br>
+                        • 완전 초기화: 모든 덱 + 라이선스 정보까지 전부 삭제
+                    </p>
+                </div>
+            `;
+
+            document.getElementById('app').appendChild(mainContent);
+        }
+
+        function addCardsFromText() {
+            const input = document.getElementById('cards-input');
+            const lines = input.value.trim().split('\n');
+            
+            const data = RecallFlow.loadData();
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                if (line.trim() && line.includes('|')) {
+                    const [front, back] = line.split('|').map(s => s.trim());
+                    if (front && back) {
+                        data.backlog.push({ 
+                            front, 
+                            back, 
+                            id: Date.now() + Math.random() 
+                        });
+                        addedCount++;
+                    }
+                }
+            });
+
+            RecallFlow.saveData(data);
+            alert(`✅ ${addedCount}장의 카드가 추가되었습니다!`);
+            input.value = '';
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('파일을 선택해주세요.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    const data = RecallFlow.loadData();
+                    let addedCount = 0;
+
+                    rows.forEach(row => {
+                        if (row.length >= 2 && row[0] && row[1]) {
+                            data.backlog.push({
+                                front: String(row[0]).trim(),
+                                back: String(row[1]).trim(),
+                                id: Date.now() + Math.random()
+                            });
+                            addedCount++;
+                        }
+                    });
+
+                    RecallFlow.saveData(data);
+                    alert(`✅ ${addedCount}장의 카드가 추가되었습니다!`);
+                    fileInput.value = '';
+                } catch (error) {
+                    alert('파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+                }
+            };
+
+            reader.readAsBinaryString(file);
+        }
+
+        function saveBoxSizes() {
+            const data = RecallFlow.loadData();
+            
+            data.settings.box1Size = parseInt(document.getElementById('box1-size').value) || 300;
+            data.settings.box2Size = parseInt(document.getElementById('box2-size').value) || 900;
+            data.settings.box3Size = parseInt(document.getElementById('box3-size').value) || 1800;
+            data.settings.box4Size = parseInt(document.getElementById('box4-size').value) || 3500;
+
+            RecallFlow.saveData(data);
+            alert('✅ 설정이 저장되었습니다!');
+        }
+
+        function saveFontSize() {
+            const data = RecallFlow.loadData();
+            
+            data.settings.fontSize = parseInt(document.getElementById('font-size').value) || 28;
+
+            RecallFlow.saveData(data);
+            alert('✅ 글씨 크기가 저장되었습니다! 학습 화면을 새로고침하면 적용됩니다.');
+        }
+
+        function saveTTSSettings() {
+            TTS.saveSetting('ttsEnabled', document.getElementById('tts-enabled').checked);
+            TTS.saveSetting('ttsAutoPlay', document.getElementById('tts-autoplay').checked);
+            TTS.saveSetting('ttsLanguage', document.getElementById('tts-language').value);
+            TTS.saveSetting('ttsRate', document.getElementById('tts-rate').value);
+            
+            alert('✅ 음성 발음 설정이 저장되었습니다!');
+        }
+
+        function testTTS(text) {
+            const settings = {
+                language: document.getElementById('tts-language').value,
+                rate: parseFloat(document.getElementById('tts-rate').value),
+                force: true
+            };
+            
+            TTS.speak(text, settings);
+        }
+
+        function exportData() {
+            const data = RecallFlow.loadData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recall-flow-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm('기존 데이터를 덮어쓰시겠습니까?')) {
+                        RecallFlow.saveData(imported);
+                        alert('✅ 데이터를 가져왔습니다!');
+                        location.reload();
+                    }
+                } catch (error) {
+                    alert('파일 형식이 올바르지 않습니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetAllData() {
+            if (RecallFlow.resetAll()) {
+                location.reload();
+            }
+        }
+
+        function completeReset() {
+            const confirmed = confirm(
+                '⚠️ 완전 초기화 경고 ⚠️\n\n' +
+                '다음 항목이 모두 삭제됩니다:\n\n' +
+                '• 모든 덱의 카드 데이터\n' +
+                '• 모든 학습 진행 상황\n' +
+                '• 라이선스 정보\n' +
+                '• 모든 설정\n\n' +
+                '정말로 완전 초기화하시겠습니까?'
+            );
+            
+            if (!confirmed) return;
+            
+            // 한 번 더 확인
+            const doubleCheck = confirm(
+                '❗ 최종 확인 ❗\n\n' +
+                '이 작업은 되돌릴 수 없습니다.\n' +
+                '정말 모든 데이터를 삭제하시겠습니까?'
+            );
+            
+            if (doubleCheck) {
+                // localStorage 완전 삭제
+                localStorage.clear();
+                alert('✅ 모든 데이터가 삭제되었습니다.\n라이선스 입력 화면으로 이동합니다.');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
