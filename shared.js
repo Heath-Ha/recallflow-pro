@@ -1,5 +1,5 @@
-// ========== Recall Flow Pro (무제한 버전) ==========
-// Recall Flow Pro - 공통 데이터 및 함수
+// ========== Recall Flow (무료 버전 - 덱 3개, 카드 10,000개 제한) ==========
+// Recall Flow - 공통 데이터 및 함수
 
 // 덱 관리
 const DeckManager = {
@@ -37,6 +37,14 @@ const DeckManager = {
     // 새 덱 생성
     createDeck(displayName) {
         const decks = this.getAllDecks();
+        
+        // 무료 버전 제한 확인
+        const restrictions = License.getRestrictions();
+        if (decks.length >= restrictions.maxDecks) {
+            alert(`무료 버전은 최대 ${restrictions.maxDecks}개의 덱을 만들 수 있습니다.\n\n💎 기부 라이선스로 무제한 덱을 사용하세요!`);
+            return null;
+        }
+        
         const name = 'deck_' + Date.now();
         
         decks.push({
@@ -78,6 +86,31 @@ const DeckManager = {
         return { success: true };
     },
     
+    // 덱 순서 변경
+    reorderDeck(deckName, direction) {
+        const decks = this.getAllDecks();
+        const index = decks.findIndex(d => d.name === deckName);
+        if (index === -1) return false;
+        
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= decks.length) return false;
+        
+        [decks[index], decks[newIndex]] = [decks[newIndex], decks[index]];
+        this.saveDecks(decks);
+        return true;
+    },
+
+    // 덱 순서 직접 저장 (드래그앤드롭용)
+    saveReorderedDecks(newOrder) {
+        const decks = this.getAllDecks();
+        const reordered = newOrder.map(name => decks.find(d => d.name === name)).filter(Boolean);
+        // 빠진 덱이 있으면 뒤에 추가
+        decks.forEach(d => {
+            if (!reordered.find(r => r.name === d.name)) reordered.push(d);
+        });
+        this.saveDecks(reordered);
+    },
+
     // 덱 이름 변경
     renameDeck(deckName, newDisplayName) {
         const decks = this.getAllDecks();
@@ -190,9 +223,20 @@ const RecallFlow = {
 
     // 데이터 저장 (현재 덱 기준)
     saveData(data) {
+        // 무료 버전 카드 제한 확인
+        const restrictions = License.getRestrictions();
+        if (!restrictions.isDonor) {
+            const totalCards = this.getStats(data).totalCards;
+            if (totalCards > restrictions.maxCards) {
+                alert(`무료 버전은 최대 ${restrictions.maxCards.toLocaleString()}개의 카드를 추가할 수 있습니다.\n\n현재: ${totalCards.toLocaleString()}개\n\n💎 기부 라이선스로 무제한 카드를 사용하세요!`);
+                return false;
+            }
+        }
+        
         const currentDeck = DeckManager.getCurrentDeck();
         const key = currentDeck === 'default' ? 'recallFlowData' : 'recallFlowData_' + currentDeck;
         localStorage.setItem(key, JSON.stringify(data));
+        return true;
     },
 
     // 전체 초기화 (현재 덱만)
@@ -231,12 +275,33 @@ const RecallFlow = {
 
 // 라이선스 관리
 const License = {
-    // 유효한 라이선스 키 목록 (기부자용)
+    // 유효한 라이선스 키 목록
     validKeys: [
-        '고맙습니다',  // 기부자용 키
-        // 다른 한글 키 추가 가능:
-        // '감사합니다', '응원해요', '사랑해요' 등
+        '매일하겠습니다',  // 무료 버전 키 (제한)
+        '고맙습니다',      // 기부자용 키 (무제한)
     ],
+    
+    // 무료 버전 제한 확인
+    getRestrictions() {
+        const licenseInfo = this.getLicenseInfo();
+        const hasValidLicense = licenseInfo.hasLicense && this.validateKey(licenseInfo.licenseKey);
+        
+        // "고맙습니다" 키는 무제한
+        if (hasValidLicense && licenseInfo.licenseKey === '고맙습니다') {
+            return {
+                maxDecks: Infinity,
+                maxCards: Infinity,
+                isDonor: true
+            };
+        } else {
+            // "매일하겠습니다" 또는 기타 = 제한
+            return {
+                maxDecks: 3,
+                maxCards: 10000,
+                isDonor: false
+            };
+        }
+    },
     
     // 라이선스 키 검증 (한글 키)
     validateKey(key) {
@@ -449,7 +514,7 @@ function showLicenseActivation() {
         <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px;">
             <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px; width: 100%;">
                 <h1 style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    <span style="color: #ff69b4;">🧠</span> Recall Flow Pro
+                    ⚡ Recall Flow
                 </h1>
                 <h2 style="color: #2d3748; margin-bottom: 30px;">라이선스 활성화</h2>
                 
@@ -517,7 +582,7 @@ function createNavbar(activePage) {
     navbar.className = 'navbar';
     
     navbar.innerHTML = `
-        <div class="navbar-brand"><span style="color: #ff69b4;">🧠</span> Recall Flow Pro</div>
+        <div class="navbar-brand">⚡ Recall Flow</div>
         <div style="display: flex; align-items: center; gap: 15px;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <select id="deck-selector" onchange="switchDeck(this.value)" style="padding: 6px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; cursor: pointer; max-width: 150px;">
@@ -561,113 +626,6 @@ function switchDeck(deckName) {
     location.reload();
 }
 
-// TTS (Text-to-Speech) 모듈
-const TTS = {
-    // 설정 가져오기
-    getSettings() {
-        return {
-            enabled: localStorage.getItem('ttsEnabled') !== 'false', // 기본 활성화
-            autoPlay: localStorage.getItem('ttsAutoPlay') === 'true', // 기본 비활성화
-            language: localStorage.getItem('ttsLanguage') || 'auto', // auto, ko-KR, en-US, ja-JP, zh-CN
-            rate: parseFloat(localStorage.getItem('ttsRate')) || 1.0, // 속도 (0.5 - 2.0)
-            pitch: parseFloat(localStorage.getItem('ttsPitch')) || 1.0, // 높낮이 (0.5 - 2.0)
-            volume: parseFloat(localStorage.getItem('ttsVolume')) || 1.0 // 음량 (0.0 - 1.0)
-        };
-    },
-    
-    // 설정 저장
-    saveSetting(key, value) {
-        localStorage.setItem(key, value);
-    },
-    
-    // 언어 자동 감지
-    detectLanguage(text) {
-        if (!text) return 'en-US';
-        
-        // 한글 포함 시
-        if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text)) return 'ko-KR';
-        
-        // 일본어 포함 시
-        if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) return 'ja-JP';
-        
-        // 중국어 포함 시
-        if (/[\u4E00-\u9FFF]/.test(text)) return 'zh-CN';
-        
-        // 기본: 영어
-        return 'en-US';
-    },
-    
-    // 음성 재생
-    speak(text, options = {}) {
-        if (!text || text.trim() === '') return;
-        
-        // Web Speech API 지원 확인
-        if (!('speechSynthesis' in window)) {
-            console.warn('TTS not supported in this browser');
-            return;
-        }
-        
-        const settings = this.getSettings();
-        
-        // TTS 비활성화 시
-        if (!settings.enabled && !options.force) return;
-        
-        // 기존 음성 중지
-        speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // 언어 설정
-        const lang = options.language || settings.language;
-        utterance.lang = lang === 'auto' ? this.detectLanguage(text) : lang;
-        
-        // 속도, 높낮이, 음량 설정
-        utterance.rate = options.rate || settings.rate;
-        utterance.pitch = options.pitch || settings.pitch;
-        utterance.volume = options.volume || settings.volume;
-        
-        // 음성 선택 (가능하면 좋은 품질의 음성)
-        const voices = speechSynthesis.getVoices();
-        const voice = voices.find(v => v.lang === utterance.lang) || voices[0];
-        if (voice) utterance.voice = voice;
-        
-        // 재생
-        speechSynthesis.speak(utterance);
-        
-        return utterance;
-    },
-    
-    // 음성 중지
-    stop() {
-        speechSynthesis.cancel();
-    },
-    
-    // 사용 가능한 언어 목록
-    getAvailableLanguages() {
-        const voices = speechSynthesis.getVoices();
-        const languages = new Set();
-        
-        voices.forEach(voice => {
-            languages.add(voice.lang);
-        });
-        
-        return Array.from(languages).sort();
-    },
-    
-    // 음성 목록 로드 (비동기)
-    loadVoices() {
-        return new Promise((resolve) => {
-            const voices = speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                resolve(voices);
-            } else {
-                speechSynthesis.onvoiceschanged = () => {
-                    resolve(speechSynthesis.getVoices());
-                };
-            }
-        });
-    }
-};
 
 // 주기적 라이선스 체크 (60초마다)
 setInterval(() => {

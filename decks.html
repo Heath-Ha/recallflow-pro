@@ -1,10 +1,10 @@
-<!-- ========== Recall Flow Pro (무제한 버전) ========== -->
+<!-- ========== Recall Flow (무료 버전 - 덱 3개, 카드 10,000개 제한) ========== -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recall Flow Pro - 덱 관리</title>
+    <title>Recall Flow - 덱 관리</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .deck-card {
@@ -14,6 +14,7 @@
             padding: 20px;
             margin-bottom: 15px;
             transition: all 0.3s ease;
+            position: relative;
         }
         
         .deck-card:hover {
@@ -24,6 +25,17 @@
         .deck-card.active {
             border-color: #667eea;
             background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        }
+
+        .deck-card.dragging {
+            opacity: 0.4;
+            border: 2px dashed #667eea;
+        }
+
+        .deck-card.drag-over {
+            border: 2px solid #764ba2;
+            background: #f0ebff;
+            transform: scale(1.01);
         }
         
         .deck-header {
@@ -69,6 +81,48 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .order-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .order-btn {
+            background: #edf2f7;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1.4;
+            transition: background 0.2s;
+        }
+
+        .order-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .order-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .drag-handle {
+            color: #a0aec0;
+            font-size: 22px;
+            cursor: grab;
+            padding: 0 8px 0 0;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
         }
     </style>
 </head>
@@ -80,7 +134,6 @@
     <script src="shared.js"></script>
     <script>
         if (!checkLicenseOnLoad()) {
-            // 라이선스 실패
         } else {
             init();
         }
@@ -88,7 +141,6 @@
         function init() {
             const container = document.getElementById('app');
             container.insertBefore(createNavbar('decks'), container.firstChild);
-
             renderDecks();
         }
 
@@ -101,38 +153,51 @@
             
             mainContent.innerHTML = `
                 <h1 style="margin-bottom: 20px;">🗂️ 덱 관리</h1>
-                <p style="color: #718096; margin-bottom: 30px;">
+                <p style="color: #718096; margin-bottom: 10px;">
                     학습자별, 과목별로 덱을 나눠서 관리하세요. 각 덱은 완전히 독립적인 데이터를 가집니다.
                 </p>
+                <p style="color: #a0aec0; font-size: 13px; margin-bottom: 25px;">
+                    ☰ 핸들을 드래그하거나 ▲▼ 버튼으로 순서를 바꿀 수 있습니다.
+                </p>
 
-                <button class="btn btn-primary" onclick="createNewDeck()" style="margin-bottom: 30px;">
+                <button class="btn btn-primary" onclick="createNewDeck()" style="margin-bottom: 25px;">
                     ➕ 새 덱 만들기
                 </button>
 
                 <div id="deck-list">
-                    ${allDecks.map(deck => renderDeckCard(deck, currentDeck)).join('')}
+                    ${allDecks.map((deck, idx) => renderDeckCard(deck, currentDeck, idx, allDecks.length)).join('')}
                 </div>
             `;
 
             document.getElementById('app').appendChild(mainContent);
+            initDragAndDrop();
         }
 
-        function renderDeckCard(deck, currentDeck) {
+        function renderDeckCard(deck, currentDeck, idx, total) {
             const stats = DeckManager.getDeckStats(deck.name);
             const isActive = deck.name === currentDeck;
             const isDefault = deck.name === 'default';
 
             return `
-                <div class="deck-card ${isActive ? 'active' : ''}">
+                <div class="deck-card ${isActive ? 'active' : ''}"
+                     draggable="true"
+                     data-deck="${deck.name}">
                     <div class="deck-header">
-                        <div>
-                            <div class="deck-name">
-                                ${deck.displayName}
-                                ${isActive ? '<span style="color: #667eea; font-size: 14px; margin-left: 10px;">● 현재 사용중</span>' : ''}
+                        <div style="display:flex; align-items:center; flex:1;">
+                            <span class="drag-handle" title="드래그하여 순서 변경">☰</span>
+                            <div>
+                                <div class="deck-name">
+                                    ${deck.displayName}
+                                    ${isActive ? '<span style="color: #667eea; font-size: 14px; margin-left: 10px;">● 현재 사용중</span>' : ''}
+                                </div>
+                                <div style="font-size: 12px; color: #a0aec0; margin-top: 5px;">
+                                    생성일: ${new Date(deck.createdAt).toLocaleDateString('ko-KR')}
+                                </div>
                             </div>
-                            <div style="font-size: 12px; color: #a0aec0; margin-top: 5px;">
-                                생성일: ${new Date(deck.createdAt).toLocaleDateString('ko-KR')}
-                            </div>
+                        </div>
+                        <div class="order-btns">
+                            <button class="order-btn" title="위로" onclick="moveDeck('${deck.name}', 'up')" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                            <button class="order-btn" title="아래로" onclick="moveDeck('${deck.name}', 'down')" ${idx === total - 1 ? 'disabled' : ''}>▼</button>
                         </div>
                     </div>
 
@@ -174,12 +239,77 @@
             `;
         }
 
+        // ── 위/아래 버튼 ──
+        function moveDeck(deckName, direction) {
+            const result = DeckManager.reorderDeck(deckName, direction);
+            if (result) reloadDeckList();
+        }
+
+        // ── 드래그앤드롭 ──
+        let dragSrc = null;
+
+        function initDragAndDrop() {
+            const list = document.getElementById('deck-list');
+            list.addEventListener('dragstart', e => {
+                dragSrc = e.target.closest('.deck-card');
+                if (!dragSrc) return;
+                dragSrc.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            list.addEventListener('dragend', e => {
+                document.querySelectorAll('.deck-card').forEach(c => {
+                    c.classList.remove('dragging', 'drag-over');
+                });
+                dragSrc = null;
+            });
+            list.addEventListener('dragover', e => {
+                e.preventDefault();
+                const target = e.target.closest('.deck-card');
+                if (!target || target === dragSrc) return;
+                document.querySelectorAll('.deck-card').forEach(c => c.classList.remove('drag-over'));
+                target.classList.add('drag-over');
+            });
+            list.addEventListener('drop', e => {
+                e.preventDefault();
+                const target = e.target.closest('.deck-card');
+                if (!target || target === dragSrc || !dragSrc) return;
+
+                // DOM 순서로 새 배열 생성
+                const cards = [...list.querySelectorAll('.deck-card')];
+                const srcIdx = cards.indexOf(dragSrc);
+                const tgtIdx = cards.indexOf(target);
+
+                // DOM 이동
+                if (srcIdx < tgtIdx) {
+                    target.after(dragSrc);
+                } else {
+                    target.before(dragSrc);
+                }
+
+                // 저장
+                const newOrder = [...list.querySelectorAll('.deck-card')].map(c => c.dataset.deck);
+                DeckManager.saveReorderedDecks(newOrder);
+                reloadDeckList();
+            });
+        }
+
+        // 덱 목록만 새로고침 (페이지 전체 reload 없이)
+        function reloadDeckList() {
+            const allDecks = DeckManager.getAllDecks();
+            const currentDeck = DeckManager.getCurrentDeck();
+            document.getElementById('deck-list').innerHTML =
+                allDecks.map((deck, idx) => renderDeckCard(deck, currentDeck, idx, allDecks.length)).join('');
+            initDragAndDrop();
+        }
+
         function createNewDeck() {
             const name = prompt('새 덱의 이름을 입력하세요:');
             if (name && name.trim()) {
                 const deckName = DeckManager.createDeck(name.trim());
-                alert(`✅ "${name}" 덱이 생성되었습니다!`);
-                location.reload();
+                if (deckName) {
+                    alert(`✅ "${name}" 덱이 생성되었습니다!`);
+                    reloadDeckList();
+                }
             }
         }
 
@@ -194,8 +324,7 @@
             if (newName && newName.trim() && newName !== currentName) {
                 const result = DeckManager.renameDeck(deckName, newName.trim());
                 if (result.success) {
-                    alert('✅ 이름이 변경되었습니다!');
-                    location.reload();
+                    reloadDeckList();
                 } else {
                     alert('❌ ' + result.message);
                 }
@@ -206,8 +335,7 @@
             if (confirm(`정말로 "${displayName}" 덱을 삭제하시겠습니까?\n\n⚠️ 이 덱의 모든 카드와 데이터가 영구적으로 삭제됩니다!`)) {
                 const result = DeckManager.deleteDeck(deckName);
                 if (result.success) {
-                    alert('✅ 덱이 삭제되었습니다.');
-                    location.reload();
+                    reloadDeckList();
                 } else {
                     alert('❌ ' + result.message);
                 }
