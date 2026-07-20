@@ -1564,7 +1564,34 @@
                     break;
             }
         });
-        
+        // 📱 터치 스와이프 (왼쪽=모른다, 오른쪽=안다)
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            if (!currentCard) return;
+
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            const SWIPE_THRESHOLD = 60; // 최소 스와이프 거리(px)
+
+            // 세로로 더 많이 움직였다면 스크롤로 보고 무시
+            if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+            if (deltaX <= -SWIPE_THRESHOLD) {
+                answerWrong();   // 왼쪽으로 밀기 = 모른다
+            } else if (deltaX >= SWIPE_THRESHOLD) {
+                answerCorrect(); // 오른쪽으로 밀기 = 안다
+            }
+        }, { passive: true });
         console.log('⌨️ 키보드 단축키 활성화됨: 스페이스/↓(뒤집기), ↑/S(음성), 1/←(모른다), 2/→(안다)');
     </script>
 </body>
