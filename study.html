@@ -397,24 +397,6 @@
     </style>
 </head>
 <body>
-    // 🖥️ 전체화면 토글
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    alert('전체화면 전환에 실패했습니다: ' + err.message);
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        // 전체화면 상태에 따라 버튼 글자 바꾸기
-        document.addEventListener('fullscreenchange', () => {
-            const btn = document.getElementById('fullscreen-btn');
-            if (btn) {
-                btn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
-            }
-        });
     <div class="container">
         <div id="nav-container"></div>
         <div class="main-content" id="study-area">
@@ -473,6 +455,7 @@
                 <div class="stat-item">📚 대기풀: <strong id="backlog-count">0</strong></div>
                 <div class="stat-item">🎯 현재 학습: <strong id="current-count">0</strong>/3</div>
                 <div class="stat-item">✅ 완전 암기: <strong id="mastered-count">0</strong></div>
+                <div class="stat-item" style="cursor: pointer; background: #764ba2; color: white;" onclick="toggleFullscreen();" id="fullscreen-btn">⛶ 전체화면</div>
                 <div class="stat-item" style="cursor: pointer; background: #4299e1; color: white;" onclick="openSettings();">⚙️ 설정</div>
                 <div class="stat-item" style="cursor: pointer; background: #f56565; color: white;" onclick="resetAllData();">🗑️ 초기화</div>
             </div>
@@ -1580,6 +1563,24 @@
                         TTS.speak(currentCard.front, {force: true}); // 앞면 읽기
                     }
                     break;
+            }
+        });
+        // 🖥️ 전체화면 토글
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert('전체화면 전환에 실패했습니다: ' + err.message);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 전체화면 상태에 따라 버튼 글자 바꾸기
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreen-btn');
+            if (btn) {
+                btn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
             }
         });
         // 📱 터치 스와이프 (왼쪽=모른다, 오른쪽=안다)
