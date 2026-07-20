@@ -1565,24 +1565,6 @@
                     break;
             }
         });
-        // 🖥️ 전체화면 토글
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    alert('전체화면 전환에 실패했습니다: ' + err.message);
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        // 전체화면 상태에 따라 버튼 글자 바꾸기
-        document.addEventListener('fullscreenchange', () => {
-            const btn = document.getElementById('fullscreen-btn');
-            if (btn) {
-                btn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
-            }
-        });
         // 📱 터치 스와이프 (왼쪽=모른다, 오른쪽=안다)
         let touchStartX = 0;
         let touchStartY = 0;
@@ -1612,6 +1594,24 @@
             }
         }, { passive: true });
         console.log('⌨️ 키보드 단축키 활성화됨: 스페이스/↓(뒤집기), ↑/S(음성), 1/←(모른다), 2/→(안다)');
+        // 🖥️ 전체화면 토글
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert('전체화면 전환에 실패했습니다: ' + err.message);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 전체화면 상태에 따라 버튼 글자 바꾸기
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreen-btn');
+            if (btn) {
+                btn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
+            }
+        });
     </script>
 </body>
 </html>
