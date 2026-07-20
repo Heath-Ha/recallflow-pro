@@ -19,6 +19,7 @@ const DeckManager = {
         if (decksJson) {
             return JSON.parse(decksJson);
         }
+        // 기본 덱 생성 및 저장
         const defaultDecks = [{
             name: 'default',
             displayName: '기본 덱',
@@ -28,10 +29,12 @@ const DeckManager = {
         return defaultDecks;
     },
     
+    // 덱 목록 저장
     saveDecks(decks) {
         localStorage.setItem('deckList', JSON.stringify(decks));
     },
     
+    // 새 덱 생성
     createDeck(displayName) {
         const decks = this.getAllDecks();
         const name = 'deck_' + Date.now();
@@ -44,12 +47,14 @@ const DeckManager = {
         
         this.saveDecks(decks);
         
+        // 새 덱의 빈 데이터 생성
         const emptyData = RecallFlow.getDefaultData();
         localStorage.setItem('recallFlowData_' + name, JSON.stringify(emptyData));
         
         return name;
     },
     
+    // 덱 삭제
     deleteDeck(deckName) {
         if (deckName === 'default') {
             return { success: false, message: '기본 덱은 삭제할 수 없습니다.' };
@@ -65,6 +70,7 @@ const DeckManager = {
         this.saveDecks(filtered);
         localStorage.removeItem('recallFlowData_' + deckName);
         
+        // 현재 덱이 삭제된 경우 기본 덱으로 전환
         if (this.getCurrentDeck() === deckName) {
             this.setCurrentDeck('default');
         }
@@ -72,6 +78,7 @@ const DeckManager = {
         return { success: true };
     },
     
+    // 덱 이름 변경
     renameDeck(deckName, newDisplayName) {
         const decks = this.getAllDecks();
         const deck = decks.find(d => d.name === deckName);
@@ -86,11 +93,13 @@ const DeckManager = {
         return { success: true };
     },
     
+    // 덱 정보 가져오기
     getDeckInfo(deckName) {
         const decks = this.getAllDecks();
         return decks.find(d => d.name === deckName);
     },
     
+    // 덱 통계 가져오기
     getDeckStats(deckName) {
         const key = deckName === 'default' ? 'recallFlowData' : 'recallFlowData_' + deckName;
         const saved = localStorage.getItem(key);
@@ -141,6 +150,7 @@ const DeckManager = {
 
 // 시스템 상태 (localStorage와 동기화)
 const RecallFlow = {
+    // 데이터 로드 (현재 덱 기준)
     loadData() {
         const currentDeck = DeckManager.getCurrentDeck();
         const key = currentDeck === 'default' ? 'recallFlowData' : 'recallFlowData_' + currentDeck;
@@ -156,6 +166,7 @@ const RecallFlow = {
         return this.getDefaultData();
     },
 
+    // 기본 데이터 구조
     getDefaultData() {
         return {
             backlog: [],
@@ -177,12 +188,14 @@ const RecallFlow = {
         };
     },
 
+    // 데이터 저장 (현재 덱 기준)
     saveData(data) {
         const currentDeck = DeckManager.getCurrentDeck();
         const key = currentDeck === 'default' ? 'recallFlowData' : 'recallFlowData_' + currentDeck;
         localStorage.setItem(key, JSON.stringify(data));
     },
 
+    // 전체 초기화 (현재 덱만)
     resetAll() {
         if (confirm('정말로 모든 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
             const currentDeck = DeckManager.getCurrentDeck();
@@ -195,6 +208,7 @@ const RecallFlow = {
         return false;
     },
 
+    // 통계 계산
     getStats(data) {
         return {
             backlogCount: data.backlog.length,
@@ -217,15 +231,20 @@ const RecallFlow = {
 
 // 라이선스 관리
 const License = {
+    // 유효한 라이선스 키 목록 (기부자용)
     validKeys: [
-        '고맙습니다',
+        '고맙습니다',  // 기부자용 키
+        // 다른 한글 키 추가 가능:
+        // '감사합니다', '응원해요', '사랑해요' 등
     ],
     
+    // 라이선스 키 검증 (한글 키)
     validateKey(key) {
         if (!key || typeof key !== 'string') return false;
         return this.validKeys.includes(key.trim());
     },
     
+    // 라이선스 정보 가져오기
     getLicenseInfo() {
         const licenseKey = localStorage.getItem('licenseKey');
         const deviceId = localStorage.getItem('licenseDevice');
@@ -239,6 +258,7 @@ const License = {
         };
     },
     
+    // 라이선스 활성화 (Pro 버전 - 간단)
     activate(key) {
         if (!this.validateKey(key)) {
             return { 
@@ -259,7 +279,10 @@ const License = {
         };
     },
     
+    
+    // 기기 고유 ID 생성
     getDeviceId() {
+        // 더 안정적인 fingerprint (시간과 무관한 값만 사용)
         const fingerprint = [
             navigator.userAgent,
             navigator.language,
@@ -271,9 +294,11 @@ const License = {
         return btoa(fingerprint);
     },
 
+    // 라이선스 체크 (Pro 버전 - 기기 무제한)
     check() {
         const licenseInfo = this.getLicenseInfo();
         
+        // 라이선스 키가 없으면
         if (!licenseInfo.hasLicense) {
             return { 
                 valid: false, 
@@ -282,6 +307,7 @@ const License = {
             };
         }
         
+        // 라이선스 키 검증
         if (!this.validateKey(licenseInfo.licenseKey)) {
             return { 
                 valid: false, 
@@ -290,6 +316,7 @@ const License = {
             };
         }
         
+        // 기기 체크 (정보만 기록, 차단 안 함)
         const currentDeviceId = this.getDeviceId();
         const isDifferentDevice = licenseInfo.deviceId !== currentDeviceId;
         
@@ -299,6 +326,7 @@ const License = {
         };
     },
 
+    // 라이선스 정보 가져오기 (상세)
     getInfo() {
         const info = this.getLicenseInfo();
         
@@ -312,7 +340,9 @@ const License = {
             isValid: this.check().valid
         };
     },
+    
 
+    // 라이선스 해제
     deactivate() {
         if (confirm('이 컴퓨터의 라이선스를 해제하시겠습니까?\n\n해제 후 다른 컴퓨터에서 같은 키로 등록할 수 있습니다.')) {
             localStorage.removeItem('licenseKey');
@@ -325,15 +355,22 @@ const License = {
     }
 };
 
+// 페이지 시작 시 라이선스 자동 체크
 function checkLicenseOnLoad() {
+    // 개발/테스트 모드: 라이선스 체크 건너뛰기
+    // 실제 배포 시 이 줄을 삭제하세요
+    // return true;
+    
     const result = License.check();
     
     if (!result.valid) {
+        // 라이선스 키 입력 필요
         if (result.needActivation) {
             showLicenseActivation();
             return false;
         }
         
+        // 다른 기기 오류
         document.body.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 500px;">
@@ -356,9 +393,12 @@ function checkLicenseOnLoad() {
     return true;
 }
 
+// 라이선스 활성화 화면
 function showLicenseActivation() {
+    // License 객체를 전역으로 보존
     window.LicenseBackup = License;
     
+    // 활성화 함수를 미리 전역으로 정의
     window.activateLicense = function() {
         const input = document.getElementById('license-key-input');
         const key = input ? input.value.trim() : '';
@@ -437,6 +477,7 @@ function showLicenseActivation() {
         </div>
     `;
     
+    // DOM이 준비된 후 이벤트 리스너 추가
     setTimeout(() => {
         const btn = document.getElementById('activate-btn');
         const input = document.getElementById('license-key-input');
@@ -456,6 +497,7 @@ function showLicenseActivation() {
     }, 100);
 }
 
+// 네비게이션 바 생성
 function createNavbar(activePage) {
     const pages = [
         { name: 'index', label: '🏠', url: 'index.html' },
@@ -499,6 +541,7 @@ function createNavbar(activePage) {
     return navbar;
 }
 
+// 페이지 제목 가져오기 (tooltip용)
 function getPageTitle(pageName) {
     const titles = {
         'index': '메인',
@@ -512,6 +555,7 @@ function getPageTitle(pageName) {
     return titles[pageName] || '';
 }
 
+// 덱 전환 함수
 function switchDeck(deckName) {
     DeckManager.setCurrentDeck(deckName);
     location.reload();
@@ -519,32 +563,45 @@ function switchDeck(deckName) {
 
 // TTS (Text-to-Speech) 모듈
 const TTS = {
+    // 설정 가져오기
     getSettings() {
         return {
-            enabled: localStorage.getItem('ttsEnabled') !== 'false',
-            autoPlay: localStorage.getItem('ttsAutoPlay') === 'true',
-            language: localStorage.getItem('ttsLanguage') || 'auto',
-            rate: parseFloat(localStorage.getItem('ttsRate')) || 1.0,
-            pitch: parseFloat(localStorage.getItem('ttsPitch')) || 1.0,
-            volume: parseFloat(localStorage.getItem('ttsVolume')) || 1.0
+            enabled: localStorage.getItem('ttsEnabled') !== 'false', // 기본 활성화
+            autoPlay: localStorage.getItem('ttsAutoPlay') === 'true', // 기본 비활성화
+            language: localStorage.getItem('ttsLanguage') || 'auto', // auto, ko-KR, en-US, ja-JP, zh-CN
+            rate: parseFloat(localStorage.getItem('ttsRate')) || 1.0, // 속도 (0.5 - 2.0)
+            pitch: parseFloat(localStorage.getItem('ttsPitch')) || 1.0, // 높낮이 (0.5 - 2.0)
+            volume: parseFloat(localStorage.getItem('ttsVolume')) || 1.0 // 음량 (0.0 - 1.0)
         };
     },
     
+    // 설정 저장
     saveSetting(key, value) {
         localStorage.setItem(key, value);
     },
     
+    // 언어 자동 감지
     detectLanguage(text) {
         if (!text) return 'en-US';
+        
+        // 한글 포함 시
         if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text)) return 'ko-KR';
+        
+        // 일본어 포함 시
         if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) return 'ja-JP';
+        
+        // 중국어 포함 시
         if (/[\u4E00-\u9FFF]/.test(text)) return 'zh-CN';
+        
+        // 기본: 영어
         return 'en-US';
     },
     
+    // 음성 재생
     speak(text, options = {}) {
         if (!text || text.trim() === '') return;
         
+        // Web Speech API 지원 확인
         if (!('speechSynthesis' in window)) {
             console.warn('TTS not supported in this browser');
             return;
@@ -552,32 +609,40 @@ const TTS = {
         
         const settings = this.getSettings();
         
+        // TTS 비활성화 시
         if (!settings.enabled && !options.force) return;
         
+        // 기존 음성 중지
         speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
         
+        // 언어 설정
         const lang = options.language || settings.language;
         utterance.lang = lang === 'auto' ? this.detectLanguage(text) : lang;
         
+        // 속도, 높낮이, 음량 설정
         utterance.rate = options.rate || settings.rate;
         utterance.pitch = options.pitch || settings.pitch;
         utterance.volume = options.volume || settings.volume;
         
+        // 음성 선택 (가능하면 좋은 품질의 음성)
         const voices = speechSynthesis.getVoices();
         const voice = voices.find(v => v.lang === utterance.lang) || voices[0];
         if (voice) utterance.voice = voice;
         
+        // 재생
         speechSynthesis.speak(utterance);
         
         return utterance;
     },
     
+    // 음성 중지
     stop() {
         speechSynthesis.cancel();
     },
     
+    // 사용 가능한 언어 목록
     getAvailableLanguages() {
         const voices = speechSynthesis.getVoices();
         const languages = new Set();
@@ -589,6 +654,7 @@ const TTS = {
         return Array.from(languages).sort();
     },
     
+    // 음성 목록 로드 (비동기)
     loadVoices() {
         return new Promise((resolve) => {
             const voices = speechSynthesis.getVoices();
