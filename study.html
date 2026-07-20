@@ -397,6 +397,24 @@
     </style>
 </head>
 <body>
+    // 🖥️ 전체화면 토글
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert('전체화면 전환에 실패했습니다: ' + err.message);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 전체화면 상태에 따라 버튼 글자 바꾸기
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreen-btn');
+            if (btn) {
+                btn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
+            }
+        });
     <div class="container">
         <div id="nav-container"></div>
         <div class="main-content" id="study-area">
